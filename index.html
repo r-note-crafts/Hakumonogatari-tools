@@ -171,10 +171,11 @@
         <div class="share-display-zone" id="share-display-zone">
             <div class="share-content" id="share-content">シナリオを選択してください</div>
         </div>
-        <!-- 送りボタンは画面共有カードの内側下部に配置し、位置を固定化 -->
+        <!-- 送りボタン・ポップアウトボタンを配置 -->
         <div class="btn-group">
-            <button class="btn btn-secondary" id="btn-prev" onclick="changeParagraph(-1)" disabled>＜ 前の段落へ</button>
-            <button class="btn btn-primary" id="btn-next" onclick="changeParagraph(1)" disabled>次の段落へ ＞</button>
+            <button class="btn btn-secondary" id="btn-prev" onclick="changeParagraph(-1)" disabled>＜ 前へ</button>
+            <button class="btn btn-primary" id="btn-next" onclick="changeParagraph(1)" disabled>次へ ＞</button>
+            <button class="btn btn-accent" id="btn-popout" onclick="openShareWindow()">ポップアウト表示</button>
         </div>
     </div>
 
@@ -273,6 +274,73 @@
     let currentParagraphIndex = -1;
     let modifications = {}; 
 
+    // ポップアウト連動用管理
+    let shareWindow = null;
+    const syncChannel = new BroadcastChannel('hakumonogatari_share_channel');
+
+    // ポップアウト側からの初期データ要求、またはリロード時の受け皿
+    syncChannel.onmessage = (event) => {
+        if (event.data.type === 'REQUEST_INIT') {
+            sendContentToPopout();
+        }
+    };
+
+    // ポップアウト窓へ現在のHTMLコンテンツを送信する共通関数
+    function sendContentToPopout() {
+        const html = document.getElementById('share-content').innerHTML;
+        syncChannel.postMessage({ type: 'UPDATE_CONTENT', html: html });
+    }
+
+    // ポップアウトウインドウを生成・起動する関数
+    function openShareWindow() {
+        if (!shareWindow || shareWindow.closed) {
+            shareWindow = window.open('', 'HakumonogatariShareWindow', 'width=600,height=450,menubar=no,toolbar=no,status=no');
+            
+            // 親ウインドウのCSSを丸ごと抽出してポップアウト側に注入する
+            const styles = Array.from(document.styleSheets).map(sheet => {
+                try { return Array.from(sheet.cssRules).map(rule => rule.cssText).join(''); } catch(e) { return ''; }
+            }).join('');
+            
+            shareWindow.document.open();
+            shareWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="ja">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>怪談白物語 - 画面共有ミラー</title>
+                    <style>
+                        ${styles}
+                        body { background: #fafafa; padding: 0; margin: 0; height: 100vh; overflow: hidden; }
+                        .share-display-zone { height: 100vh; border: none; border-radius: 0; background: #fafafa; overflow-y: auto; padding: 16px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="share-display-zone" id="share-display-zone">
+                        <div class="share-content" id="share-content">${document.getElementById('share-content').innerHTML}</div>
+                    </div>
+                    <script>
+                        const syncChannel = new BroadcastChannel('hakumonogatari_share_channel');
+                        syncChannel.onmessage = (event) => {
+                            if (event.data.type === 'UPDATE_CONTENT') {
+                                const zone = document.getElementById('share-display-zone');
+                                document.getElementById('share-content').innerHTML = event.data.html;
+                                // 自動最下部スクロール
+                                setTimeout(() => { zone.scrollTop = zone.scrollHeight; }, 30);
+                            }
+                        };
+                        // 起動時に親ウインドウへ最新データを要求
+                        syncChannel.postMessage({ type: 'REQUEST_INIT' });
+                    <\/script>
+                </body>
+                </html>
+            `);
+            shareWindow.document.close();
+        } else {
+            // 既に開いている場合は前面へ
+            shareWindow.focus();
+        }
+    }
+
     // 初期化処理
     window.addEventListener('DOMContentLoaded', () => {
         const localData = localStorage.getItem('hakumonogatari_scenarios');
@@ -338,6 +406,7 @@
         document.getElementById('btn-prev').disabled = true;
         document.getElementById('btn-next').disabled = true;
         updateHistoryDisplay();
+        sendContentToPopout(); // ポップアウト側も同期初期化
     }
 
     // 段落の変更（進退）
@@ -395,6 +464,7 @@
             document.getElementById('progress-text').innerText = `0 / ${paragraphs.length} 件`;
             document.getElementById('btn-prev').disabled = true;
             document.getElementById('btn-next').disabled = paragraphs.length === 0;
+            sendContentToPopout(); // ポップアウト側へ送信
             return;
         }
         
@@ -416,6 +486,9 @@
         document.getElementById('progress-text').innerText = `${currentParagraphIndex + 1} / ${paragraphs.length} 件`;
         document.getElementById('btn-prev').disabled = (currentParagraphIndex <= -1);
         document.getElementById('btn-next').disabled = (currentParagraphIndex >= paragraphs.length - 1);
+
+        // ★ポップアウト側へもリアルタイムにコンテンツを同期転送
+        sendContentToPopout();
     }
 
     // 要キーワードの表示更新
