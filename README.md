@@ -1,5 +1,6 @@
 # Hakumonogatari-tools
 白物語用ツール
+
 操作手順（シナリオ準備編）
 ゲームセッションを行う前の、GMによる事前準備の手順です。
 1. ツールの起動: 公開したGitHub PagesのURL（またはローカルの ⁠index.html⁠ ）をブラウザで開きます。
