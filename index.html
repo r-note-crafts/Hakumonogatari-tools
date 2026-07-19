@@ -62,7 +62,7 @@
             <button onclick="nextParagraph()" class="btn-success">次の段落へ ＞</button>
             <button onclick="openPopoutWindow()" class="btn-accent">ポップアウト表示</button>
             
-            <!-- 文字サイズリアルタイムコントローラー（0.5em 〜 10.0em まで拡張） -->
+            <!-- 文字サイズリアルタイムコントローラー -->
             <div style="display: flex; align-items: center; gap: 8px; background: #e9ecef; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ccc;">
                 <span style="font-weight: bold; color: #495057;">共有窓文字サイズ:</span>
                 <input type="range" id="fontSizeSlider" min="0.5" max="10.0" step="0.1" value="1.6" oninput="changeFontSize(this.value)" style="width: 120px; margin: 0; cursor: pointer;">
@@ -132,9 +132,9 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.2.4) ---
+    // --- データ構造 (v1.3.0) ---
     let appData = { 
-        version: "1.2.4",
+        version: "1.3.0",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
@@ -143,7 +143,6 @@
     };
 
     // --- ポップアウト連動用管理 ---
-    let popoutWindow = null;
     const syncChannel = new BroadcastChannel('kaidan_tool_popout_channel');
 
     syncChannel.onmessage = (event) => {
@@ -152,12 +151,32 @@
         }
     };
 
+    function getPlainReplacements(text) {
+        let plainText = text;
+        const keys = Object.keys(appData.replacements).sort((a, b) => b.length - a.length);
+        keys.forEach(key => {
+            const safeRegex = new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+            plainText = plainText.replace(safeRegex, appData.replacements[key]);
+        });
+        return plainText;
+    }
+
     function sendContentToPopout() {
+        const s = appData.stories[appData.currentId];
+        let paragraphsArray = [];
+        if (s) {
+            const rawParagraphs = s.text.split(/\n\s*\n/);
+            for (let i = 0; i < appData.currentIndex; i++) {
+                paragraphsArray.push(getPlainReplacements(rawParagraphs[i]));
+            }
+        }
+
         const html = document.getElementById('sharedView').innerHTML;
         syncChannel.postMessage({ 
             type: 'UPDATE_CONTENT', 
             html: html,
-            fontSize: appData.popoutFontSize || 1.6
+            fontSize: appData.popoutFontSize || 1.6,
+            paragraphs: paragraphsArray
         });
     }
 
@@ -169,79 +188,237 @@
     }
 
     function openPopoutWindow() {
-        if (!popoutWindow || popoutWindow.closed) {
-            popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=700,height=500,menubar=no,toolbar=no,status=no');
-            
-            const styles = Array.from(document.styleSheets).map(sheet => {
-                try { return Array.from(sheet.cssRules).map(rule => rule.cssText).join(''); } catch(e) { return ''; }
-            }).join('');
-            
-            popoutWindow.document.open();
-            popoutWindow.document.write(`
-                <!DOCTYPE html>
-                <html lang="ja">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>怪談白物語 - 画面共有ミラー</title>
-                    <link rel="preconnect" href="https://fonts.googleapis.com">
-                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-                    <link href="https://fonts.googleapis.com/css2?family=New+Tegomin&display=swap" rel="stylesheet">
-                    <style>
-                        ${styles}
-                        body { 
-                            background: #0d0404; 
-                            color: #ded3d3; 
-                            padding: 24px; 
-                            margin: 0; 
-                            height: 100vh; 
-                            box-sizing: border-box; 
-                            overflow: hidden; 
-                            font-family: 'New Tegomin', 'Hiragino Mincho ProN', 'MS Mincho', serif;
+        const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=700,height=500,menubar=no,toolbar=no,status=no');
+        if (!popoutWindow) return;
+        
+        const styles = Array.from(document.styleSheets).map(sheet => {
+            try { return Array.from(sheet.cssRules).map(rule => rule.cssText).join(''); } catch(e) { return ''; }
+        }).join('');
+        
+        popoutWindow.document.open();
+        popoutWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ja">
+            <head>
+                <meta charset="UTF-8">
+                <title>怪談白物語 - 画面共有ミラー</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link href="https://fonts.googleapis.com/css2?family=New+Tegomin&display=swap" rel="stylesheet">
+                <style>
+                    ${styles}
+                    body { 
+                        background: #0d0404; 
+                        color: #ded3d3; 
+                        padding: 24px; 
+                        padding-bottom: 70px; 
+                        margin: 0; 
+                        height: 100vh; 
+                        box-sizing: border-box; 
+                        overflow: hidden; 
+                        font-family: 'New Tegomin', 'Hiragino Mincho ProN', 'MS Mincho', serif;
+                    }
+                    .shared-view { 
+                        height: 100%; 
+                        border: none; 
+                        padding: 0; 
+                        background: transparent; 
+                        overflow-y: auto; 
+                        box-shadow: none; 
+                        min-height: auto; 
+                        font-size: 1.6em; 
+                        line-height: 2.0; 
+                        letter-spacing: 0.05em;
+                    }
+                    p { margin-top: 0; margin-bottom: 1.5em; }
+                    
+                    .replaced { 
+                        font-family: 'Helvetica Neue', Arial, sans-serif !important; 
+                        background: #ffeb3b !important; 
+                        color: #000000 !important;
+                        border: 1px solid #d4d400 !important;
+                        font-weight: bold !important;
+                    }
+
+                    .audio-ctrl-container {
+                        position: fixed;
+                        bottom: 15px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: rgba(13, 4, 4, 0.95);
+                        border: 1px solid #3a1a1a;
+                        padding: 6px 14px;
+                        border-radius: 4px;
+                        font-family: 'New Tegomin', serif;
+                        font-size: 0.85em;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        box-shadow: 0 0 15px rgba(0,0,0,0.8);
+                        opacity: 0.2;
+                        transition: opacity 0.3s;
+                        z-index: 9999;
+                    }
+                    .audio-ctrl-container:hover {
+                        opacity: 1.0;
+                    }
+                    .audio-main-btn {
+                        background: transparent;
+                        border: none;
+                        color: #bfaaaa;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-family: inherit;
+                        padding: 0;
+                        font-size: 1em;
+                        outline: none;
+                    }
+                    .audio-main-btn:hover {
+                        color: #ded3d3;
+                    }
+                    .audio-sub-menu {
+                        display: none;
+                        gap: 8px;
+                        border-left: 1px solid #4a2a2a;
+                        padding-left: 10px;
+                        align-items: center;
+                    }
+                    .audio-sub-menu.open {
+                        display: flex;
+                    }
+                    .audio-btn {
+                        background: #1a0a0a;
+                        border: 1px solid #4a2a2a;
+                        color: #ded3d3;
+                        padding: 2px 8px;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-family: inherit;
+                        font-size: 0.9em;
+                        outline: none;
+                        transition: background 0.2s;
+                    }
+                    .audio-btn:hover {
+                        background: #3a1a1a;
+                        color: #ffffff;
+                    }
+                </style>
+            </head>
+            <body>
+                <div id="sharedView" class="shared-view">${document.getElementById('sharedView').innerHTML}</div>
+                
+                <div class="audio-ctrl-container">
+                    <button id="audioMainBtn" class="audio-main-btn" onclick="toggleAudioMenu()">【読み上げ ＞】</button>
+                    <div id="audioSubMenu" class="audio-sub-menu">
+                        <button class="audio-btn" onclick="playCurrent()">再生（現段落）</button>
+                        <button class="audio-btn" onclick="playAll()">再生（全体）</button>
+                        <button class="audio-btn" onclick="pauseResume()">一時停止/再開</button>
+                        <button class="audio-btn" onclick="stopAudio()">停止</button>
+                    </div>
+                </div>
+
+                <script>
+                    const syncChannel = new BroadcastChannel('kaidan_tool_popout_channel');
+                    const view = document.getElementById('sharedView');
+                    
+                    let currentParagraphs = [];
+                    let isPlayingAll = false;
+                    let allPlayIndex = 0;
+
+                    syncChannel.onmessage = (event) => {
+                        if (event.data.type === 'UPDATE_CONTENT') {
+                            window.speechSynthesis.cancel();
+                            isPlayingAll = false;
+
+                            view.innerHTML = event.data.html;
+                            view.style.fontSize = event.data.fontSize + 'em';
+                            currentParagraphs = event.data.paragraphs || [];
+                            
+                            setTimeout(() => { view.scrollTop = view.scrollHeight; }, 30);
                         }
-                        .shared-view { 
-                            height: 100%; 
-                            border: none; 
-                            padding: 0; 
-                            background: transparent; 
-                            overflow-y: auto; 
-                            box-shadow: none; 
-                            min-height: auto; 
-                            font-size: 1.6em; 
-                            line-height: 2.0; 
-                            letter-spacing: 0.05em;
+                    };
+
+                    function toggleAudioMenu() {
+                        const menu = document.getElementById('audioSubMenu');
+                        const btn = document.getElementById('audioMainBtn');
+                        if (menu.classList.contains('open')) {
+                            menu.classList.remove('open');
+                            btn.textContent = '【読み上げ ＞】';
+                        } else {
+                            menu.classList.add('open');
+                            btn.textContent = '【読み上げ ▼】';
                         }
-                        p { margin-top: 0; margin-bottom: 1.5em; }
+                    }
+
+                    function speakText(text, onEndCallback) {
+                        window.speechSynthesis.cancel();
+                        if (!text) {
+                            if (onEndCallback) onEndCallback();
+                            return;
+                        }
+                        const uttr = new SpeechSynthesisUtterance(text);
+                        const voices = window.speechSynthesis.getVoices();
+                        const jaVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja'));
+                        if (jaVoice) uttr.voice = jaVoice;
                         
-                        .replaced { 
-                            font-family: 'Helvetica Neue', Arial, sans-serif !important; 
-                            background: #ffeb3b !important; 
-                            color: #000000 !important;
-                            border: 1px solid #d4d400 !important;
-                            font-weight: bold !important;
+                        uttr.pitch = 1.4; 
+                        uttr.rate = 1.3;  
+                        
+                        uttr.onend = () => { if (onEndCallback) onEndCallback(); };
+                        uttr.onerror = () => { isPlayingAll = false; };
+                        
+                        window.speechSynthesis.speak(uttr);
+                    }
+
+                    function playCurrent() {
+                        isPlayingAll = false;
+                        if (currentParagraphs.length === 0) return;
+                        const text = currentParagraphs[currentParagraphs.length - 1];
+                        speakText(text);
+                    }
+
+                    function playAll() {
+                        if (currentParagraphs.length === 0) return;
+                        isPlayingAll = true;
+                        allPlayIndex = 0;
+                        playNextInAll();
+                    }
+
+                    function playNextInAll() {
+                        if (!isPlayingAll) return;
+                        if (allPlayIndex < currentParagraphs.length) {
+                            const text = currentParagraphs[allPlayIndex];
+                            allPlayIndex++;
+                            speakText(text, () => {
+                                setTimeout(() => { playNextInAll(); }, 400); 
+                            });
+                        } else {
+                            isPlayingAll = false;
                         }
-                    </style>
-                </head>
-                <body>
-                    <div id="sharedView" class="shared-view">${document.getElementById('sharedView').innerHTML}</div>
-                    <script>
-                        const syncChannel = new BroadcastChannel('kaidan_tool_popout_channel');
-                        const view = document.getElementById('sharedView');
-                        syncChannel.onmessage = (event) => {
-                            if (event.data.type === 'UPDATE_CONTENT') {
-                                view.innerHTML = event.data.html;
-                                view.style.fontSize = event.data.fontSize + 'em';
-                                setTimeout(() => { view.scrollTop = view.scrollHeight; }, 30);
+                    }
+
+                    function pauseResume() {
+                        if (window.speechSynthesis.speaking) {
+                            if (window.speechSynthesis.paused) {
+                                window.speechSynthesis.resume();
+                            } else {
+                                window.speechSynthesis.pause();
                             }
-                        };
-                        syncChannel.postMessage({ type: 'REQUEST_INIT' });
-                    <\/script>
-                </body>
-                </html>
-            `);
-            popoutWindow.document.close();
-        } else {
-            popoutWindow.focus();
-        }
+                        }
+                    }
+
+                    function stopAudio() {
+                        isPlayingAll = false;
+                        window.speechSynthesis.cancel();
+                    }
+
+                    syncChannel.postMessage({ type: 'REQUEST_INIT' });
+                <\/script>
+            </body>
+            </html>
+        `);
+        popoutWindow.document.close();
+        popoutWindow.focus();
     }
 
     // --- ユーティリティ関数 ---
@@ -339,7 +516,6 @@
         renderAll();
     }
 
-    // --- 編集・削除 ---
     function loadScenarioForEdit() {
         const id = appData.currentId;
         const s = appData.stories[id];
@@ -488,7 +664,6 @@
         }
     }
 
-    // --- 履歴描画 ---
     function renderHistory() {
         const list = document.getElementById('historyList');
         list.innerHTML = "";
@@ -518,7 +693,7 @@
 
     // --- インポート / エクスポート ---
     function exportData() {
-        appData.version = "1.2.4"; 
+        appData.version = "1.3.0"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -540,7 +715,7 @@
                 
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.2.4",
+                        version: "1.3.0",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -565,7 +740,7 @@
                     });
                     
                     appData = {
-                        version: "1.2.4",
+                        version: "1.3.0",
                         stories: convertedStories,
                         currentId: "",
                         replacements: {},
@@ -589,7 +764,7 @@
     function resetAllData() {
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
-            appData = { version: "1.2.4", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6 };
+            appData = { version: "1.3.0", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6 };
             updateSelector();
             renderAll();
             showToast("データを初期化しました", "info");
