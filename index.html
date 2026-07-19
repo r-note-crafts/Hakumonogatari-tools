@@ -125,9 +125,9 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.2.1) ---
+    // --- データ構造 (v1.2.2) ---
     let appData = { 
-        version: "1.2.1",
+        version: "1.2.2",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
@@ -164,11 +164,45 @@
                 <head>
                     <meta charset="UTF-8">
                     <title>怪談白物語 - 画面共有ミラー</title>
+                    <!-- 恐ろしい雰囲気にぴったりのGoogle Fonts「ニューテゴミン」を読み込み -->
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=New+Tegomin&display=swap" rel="stylesheet">
                     <style>
                         ${styles}
-                        body { background: #fafafa; padding: 24px; margin: 0; height: 100vh; box-sizing: border-box; overflow: hidden; }
-                        .shared-view { height: 100%; border: none; padding: 0; background: transparent; overflow-y: auto; box-shadow: none; min-height: auto; font-size: 1.5em; line-height: 1.8; }
+                        /* 背景を禍々しい漆黒に、文字色を血の気の引いた灰白色に変更 */
+                        body { 
+                            background: #0d0404; 
+                            color: #ded3d3; 
+                            padding: 24px; 
+                            margin: 0; 
+                            height: 100vh; 
+                            box-sizing: border-box; 
+                            overflow: hidden; 
+                            font-family: 'New Tegomin', 'Hiragino Mincho ProN', 'MS Mincho', serif;
+                        }
+                        .shared-view { 
+                            height: 100%; 
+                            border: none; 
+                            padding: 0; 
+                            background: transparent; 
+                            overflow-y: auto; 
+                            box-shadow: none; 
+                            min-height: auto; 
+                            font-size: 1.6em; 
+                            line-height: 2.0; 
+                            letter-spacing: 0.05em;
+                        }
                         p { margin-top: 0; margin-bottom: 1.5em; }
+                        
+                        /* 【重要】置き換えたワードだけは元のフォント（サンセリフ/ゴシック）を強制維持 */
+                        .replaced { 
+                            font-family: 'Helvetica Neue', Arial, sans-serif !important; 
+                            background: #ffeb3b !important; 
+                            color: #000000 !important;
+                            border: 1px solid #d4d400 !important;
+                            font-weight: bold !important;
+                        }
                     </style>
                 </head>
                 <body>
@@ -458,9 +492,9 @@
         });
     }
 
-    // --- インポート / エクスポート 【V1.2.1 ハイブリッド修正版】 ---
+    // --- インポート / エクスポート （ハイブリッド対応版） ---
     function exportData() {
-        appData.version = "1.2.1"; 
+        appData.version = "1.2.2"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -480,10 +514,10 @@
             try {
                 const imported = JSON.parse(e.target.result);
                 
-                // パターンA: 統合版オブジェクト形式 { version: "...", stories: {...} } の判別
+                // パターンA: オブジェクト形式 { version: "...", stories: {...} } の判別
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.2.1",
+                        version: "1.2.2",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -508,7 +542,7 @@
                     });
                     
                     appData = {
-                        version: "1.2.1",
+                        version: "1.2.2",
                         stories: convertedStories,
                         currentId: "",
                         replacements: {},
@@ -531,7 +565,7 @@
     function resetAllData() {
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
-            appData = { version: "1.2.1", stories: {}, currentId: "", replacements: {}, currentIndex: 0 };
+            appData = { version: "1.2.2", stories: {}, currentId: "", replacements: {}, currentIndex: 0 };
             updateSelector();
             renderAll();
             showToast("データを初期化しました", "info");
