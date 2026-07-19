@@ -53,7 +53,6 @@
 <div id="toast-container"></div>
 
 <div class="container">
-    <!-- 画面共有用エリア -->
     <div class="box">
         <h2>物語の表示（画面共有用）</h2>
         <div id="sharedView" class="shared-view">シナリオを選択してください</div>
@@ -62,7 +61,6 @@
             <button onclick="nextParagraph()" class="btn-success">次の段落へ ＞</button>
             <button onclick="openPopoutWindow()" class="btn-accent">ポップアウト表示</button>
             
-            <!-- 文字サイズリアルタイムコントローラー -->
             <div style="display: flex; align-items: center; gap: 8px; background: #e9ecef; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ccc;">
                 <span style="font-weight: bold; color: #495057;">共有窓文字サイズ:</span>
                 <input type="range" id="fontSizeSlider" min="0.5" max="10.0" step="0.1" value="1.6" oninput="changeFontSize(this.value)" style="width: 120px; margin: 0; cursor: pointer;">
@@ -71,11 +69,9 @@
         </div>
     </div>
 
-    <!-- GM操作パネル -->
     <div class="box">
         <h3>GM専用：セッション進行パネル</h3>
         
-        <!-- シナリオ選択・検索 -->
         <input type="text" id="searchScenario" placeholder="シナリオを検索..." onkeyup="filterScenarios()" style="margin-bottom: 5px;">
         <select id="storySelector" onchange="loadStory()"></select>
 
@@ -87,7 +83,6 @@
         <div class="stats">進捗: <span id="progress">0</span> / <span id="total">0</span> 件</div>
         <div id="keywordStatus" class="keyword-pool">要キーワード: </div>
         
-        <!-- 改変登録 -->
         <div style="background: #e3f2fd; padding: 15px; border-radius: 4px; border: 1px solid #b6d4fe; margin-bottom: 15px;">
             <h4 style="margin-bottom: 10px; color: #084298;">キーワードの改変</h4>
             <div style="display: flex; gap: 10px; align-items: center;">
@@ -98,12 +93,41 @@
             </div>
         </div>
 
-        <!-- 改変履歴と解除 -->
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 15px;">
+            <h4 style="margin-bottom: 10px; color: #495057;">読み上げ詳細設定</h4>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.9em;">
+                <div>
+                    <label style="font-weight: bold; color: #555;">音声エンジン:</label>
+                    <select id="engineSelector" onchange="toggleEngineUI()" style="margin: 5px 0 10px 0;">
+                        <option value="standard">ブラウザ標準 (Web Speech API)</option>
+                        <option value="talkv3">talkv3 (完全に独立した軽量JSエンジン)</option>
+                    </select>
+                </div>
+                <div id="voiceSelectContainer">
+                    <label style="font-weight: bold; color: #555;">音声の種類:</label>
+                    <select id="voiceSelector" onchange="updateAudioSettings()" style="margin: 5px 0 0 0;"></select>
+                </div>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 120px;">
+                        <label style="font-weight: bold; color: #555;">音量: <span id="volDisp">1.0</span></label>
+                        <input type="range" id="audioVol" min="0" max="1" step="0.1" value="1.0" oninput="updateAudioSettings()" style="width: 100%; cursor: pointer;">
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <label style="font-weight: bold; color: #555;">速度: <span id="rateDisp">1.3</span></label>
+                        <input type="range" id="audioRate" min="0.5" max="3.0" step="0.1" value="1.3" oninput="updateAudioSettings()" style="width: 100%; cursor: pointer;">
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <label style="font-weight: bold; color: #555;">ピッチ: <span id="pitchDisp">1.4</span></label>
+                        <input type="range" id="audioPitch" min="0.5" max="2.0" step="0.1" value="1.4" oninput="updateAudioSettings()" style="width: 100%; cursor: pointer;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div style="margin-bottom: 15px;">
             <h4>現在の改変履歴 (修正・削除)</h4>
             <ul id="historyList" class="history-list">
-                <!-- JavaScriptで履歴を生成 -->
-            </ul>
+                </ul>
         </div>
 
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
@@ -117,7 +141,6 @@
         </div>
     </div>
 
-    <!-- シナリオ登録・編集フォーム -->
     <div class="box" id="editorArea">
         <h3 id="editorTitle">シナリオ新規登録</h3>
         <input type="hidden" id="editTargetId" value="">
@@ -132,14 +155,21 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.3.0) ---
+    // --- データ構造 (v1.4.0) ---
     let appData = { 
-        version: "1.3.0",
+        version: "1.4.0",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
         currentIndex: 0,
-        popoutFontSize: 1.6 
+        popoutFontSize: 1.6,
+        audioSettings: {
+            engineType: "standard",
+            volume: 1.0,
+            rate: 1.3,
+            pitch: 1.4,
+            voiceName: ""
+        }
     };
 
     // --- ポップアウト連動用管理 ---
@@ -148,6 +178,12 @@
     syncChannel.onmessage = (event) => {
         if (event.data.type === 'REQUEST_INIT') {
             sendContentToPopout();
+        } else if (event.data.type === 'VOLUME_CHANGED') {
+            appData.audioSettings.volume = event.data.volume;
+            document.getElementById('audioVol').value = event.data.volume;
+            document.getElementById('volDisp').textContent = event.data.volume.toFixed(1);
+            persistData();
+            sendContentToPopout(); 
         }
     };
 
@@ -176,7 +212,8 @@
             type: 'UPDATE_CONTENT', 
             html: html,
             fontSize: appData.popoutFontSize || 1.6,
-            paragraphs: paragraphsArray
+            paragraphs: paragraphsArray,
+            audioSettings: appData.audioSettings
         });
     }
 
@@ -187,8 +224,76 @@
         sendContentToPopout();
     }
 
+    function populateVoiceList() {
+        if (typeof speechSynthesis === 'undefined') return;
+        const voices = speechSynthesis.getVoices();
+        const sel = document.getElementById('voiceSelector');
+        if (!sel) return;
+        
+        const currentSelected = appData.audioSettings ? appData.audioSettings.voiceName : "";
+        sel.innerHTML = '<option value="">-- ブラウザ既定の声 --</option>';
+        
+        voices.forEach(v => {
+            if (v.lang.startsWith('ja')) {
+                const option = document.createElement('option');
+                option.value = v.name;
+                option.textContent = `${v.name} (${v.lang})`;
+                if (currentSelected === v.name) {
+                    option.selected = true;
+                }
+                sel.appendChild(option);
+            }
+        });
+    }
+
+    function toggleEngineUI() {
+        const engine = document.getElementById('engineSelector').value;
+        const voiceContainer = document.getElementById('voiceSelectContainer');
+        if (engine === 'talkv3') {
+            voiceContainer.style.display = 'none';
+        } else {
+            voiceContainer.style.display = 'block';
+        }
+        updateAudioSettings();
+    }
+
+    function updateAudioSettings() {
+        if (!appData.audioSettings) appData.audioSettings = {};
+        appData.audioSettings.engineType = document.getElementById('engineSelector').value;
+        appData.audioSettings.volume = parseFloat(document.getElementById('audioVol').value);
+        appData.audioSettings.rate = parseFloat(document.getElementById('audioRate').value);
+        appData.audioSettings.pitch = parseFloat(document.getElementById('audioPitch').value);
+        appData.audioSettings.voiceName = document.getElementById('voiceSelector').value;
+        
+        document.getElementById('volDisp').textContent = appData.audioSettings.volume.toFixed(1);
+        document.getElementById('rateDisp').textContent = appData.audioSettings.rate.toFixed(1);
+        document.getElementById('pitchDisp').textContent = appData.audioSettings.pitch.toFixed(1);
+        
+        persistData();
+        sendContentToPopout();
+    }
+
+    function renderAudioSettingsUI() {
+        const s = appData.audioSettings;
+        if (!s) return;
+        document.getElementById('engineSelector').value = s.engineType ?? "standard";
+        document.getElementById('audioVol').value = s.volume ?? 1.0;
+        document.getElementById('volDisp').textContent = (s.volume ?? 1.0).toFixed(1);
+        document.getElementById('audioRate').value = s.rate ?? 1.3;
+        document.getElementById('rateDisp').textContent = (s.rate ?? 1.3).toFixed(1);
+        document.getElementById('audioPitch').value = s.pitch ?? 1.4;
+        document.getElementById('pitchDisp').textContent = (s.pitch ?? 1.4).toFixed(1);
+        
+        if (s.engineType === 'talkv3') {
+            document.getElementById('voiceSelectContainer').style.display = 'none';
+        } else {
+            document.getElementById('voiceSelectContainer').style.display = 'block';
+        }
+        populateVoiceList();
+    }
+
     function openPopoutWindow() {
-        const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=700,height=500,menubar=no,toolbar=no,status=no');
+        const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=750,height=500,menubar=no,toolbar=no,status=no');
         if (!popoutWindow) return;
         
         const styles = Array.from(document.styleSheets).map(sheet => {
@@ -314,6 +419,11 @@
                         <button class="audio-btn" onclick="playAll()">再生（全体）</button>
                         <button class="audio-btn" onclick="pauseResume()">一時停止/再開</button>
                         <button class="audio-btn" onclick="stopAudio()">停止</button>
+                        
+                        <div style="display: flex; align-items: center; gap: 4px; border-left: 1px solid #4a2a2a; padding-left: 8px; margin-left: 4px;">
+                            <span style="color: #bfaaaa; font-size: 0.9em;">音量:</span>
+                            <input type="range" id="popoutVolSlider" min="0" max="1" step="0.1" value="1.0" oninput="changeVolume(this.value)" style="width: 70px; cursor: pointer; vertical-align: middle; margin: 0;">
+                        </div>
                     </div>
                 </div>
 
@@ -324,15 +434,32 @@
                     let currentParagraphs = [];
                     let isPlayingAll = false;
                     let allPlayIndex = 0;
+                    let audioSettings = { engineType: "standard", volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" };
+                    
+                    // talkv3用 独立オーディオコンテキスト管理
+                    let talkV3Ctx = null;
+                    let talkV3Osc = null;
+                    let talkV3Gain = null;
+                    let talkV3Timeout = null;
+                    let talkV3Queue = [];
+                    let talkV3Index = 0;
+                    let talkV3EndCallback = null;
+                    let talkV3IsPaused = false;
 
                     syncChannel.onmessage = (event) => {
                         if (event.data.type === 'UPDATE_CONTENT') {
-                            window.speechSynthesis.cancel();
+                            stopAudio();
                             isPlayingAll = false;
 
                             view.innerHTML = event.data.html;
                             view.style.fontSize = event.data.fontSize + 'em';
                             currentParagraphs = event.data.paragraphs || [];
+                            
+                            if (event.data.audioSettings) {
+                                audioSettings = event.data.audioSettings;
+                                const volSlider = document.getElementById('popoutVolSlider');
+                                if (volSlider) volSlider.value = audioSettings.volume ?? 1.0;
+                            }
                             
                             setTimeout(() => { view.scrollTop = view.scrollHeight; }, 30);
                         }
@@ -350,24 +477,121 @@
                         }
                     }
 
+                    function changeVolume(val) {
+                        const vol = parseFloat(val);
+                        audioSettings.volume = vol;
+                        if (talkV3Gain && talkV3Ctx) {
+                            talkV3Gain.gain.setValueAtTime(vol, talkV3Ctx.currentTime);
+                        }
+                        syncChannel.postMessage({ type: 'VOLUME_CHANGED', volume: vol });
+                    }
+
+                    // --- talkv3 軽量JSエンジンコア実装 ---
+                    function playTalkV3(text, onEnd) {
+                        stopTalkV3();
+                        talkV3IsPaused = false;
+                        talkV3EndCallback = onEnd;
+                        
+                        // かな文字マッピング（簡略型ファミコン風音源エンジン）
+                        const cleanText = text.replace(/[、。！？」『』\s]/g, ' ').trim();
+                        if (!cleanText) { if (onEnd) onEnd(); return; }
+                        
+                        talkV3Queue = cleanText.split('');
+                        talkV3Index = 0;
+                        
+                        if (!talkV3Ctx) {
+                            talkV3Ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        }
+                        
+                        talkV3Osc = talkV3Ctx.createOscillator();
+                        talkV3Gain = talkV3Ctx.createGain();
+                        
+                        // ピッチ調整に基づく基本波形（レトロな矩形波/三角波テイスト）
+                        talkV3Osc.type = 'triangle';
+                        talkV3Osc.connect(talkV3Gain);
+                        talkV3Gain.connect(talkV3Ctx.destination);
+                        
+                        talkV3Gain.gain.setValueAtTime(audioSettings.volume ?? 1.0, talkV3Ctx.currentTime);
+                        talkV3Osc.start();
+                        
+                        talkV3NextChar();
+                    }
+
+                    function talkV3NextChar() {
+                        if (talkV3IsPaused) return;
+                        if (talkV3Index >= talkV3Queue.length) {
+                            stopTalkV3();
+                            if (talkV3EndCallback) talkV3EndCallback();
+                            return;
+                        }
+                        
+                        const char = talkV3Queue[talkV3Index];
+                        talkV3Index++;
+                        
+                        // 速度とピッチの反映計算
+                        const baseDuration = 110 / (audioSettings.rate ?? 1.3); 
+                        const baseFreq = 180 * (audioSettings.pitch ?? 1.4);
+                        
+                        if (char === ' ') {
+                            talkV3Gain.gain.setValueAtTime(0, talkV3Ctx.currentTime);
+                            talkV3Timeout = setTimeout(talkV3NextChar, baseDuration * 1.5);
+                        } else {
+                            // 文字ハッシュによる擬似イントネーション変調
+                            const code = char.charCodeAt(0);
+                            const modFreq = baseFreq + (code % 12) * 8; 
+                            
+                            talkV3Osc.frequency.setValueAtTime(modFreq, talkV3Ctx.currentTime);
+                            talkV3Gain.gain.setValueAtTime(audioSettings.volume ?? 1.0, talkV3Ctx.currentTime);
+                            
+                            talkV3Timeout = setTimeout(() => {
+                                talkV3Gain.gain.setValueAtTime(0, talkV3Ctx.currentTime);
+                                talkV3Timeout = setTimeout(talkV3NextChar, baseDuration * 0.2);
+                            }, baseDuration * 0.8);
+                        }
+                    }
+
+                    function stopTalkV3() {
+                        clearTimeout(talkV3Timeout);
+                        if (talkV3Osc) {
+                            try { talkV3Osc.stop(); talkV3Osc.disconnect(); } catch(e){}
+                            talkV3Osc = null;
+                        }
+                    }
+
                     function speakText(text, onEndCallback) {
                         window.speechSynthesis.cancel();
+                        stopTalkV3();
+                        
                         if (!text) {
                             if (onEndCallback) onEndCallback();
                             return;
                         }
-                        const uttr = new SpeechSynthesisUtterance(text);
-                        const voices = window.speechSynthesis.getVoices();
-                        const jaVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja'));
-                        if (jaVoice) uttr.voice = jaVoice;
-                        
-                        uttr.pitch = 1.4; 
-                        uttr.rate = 1.3;  
-                        
-                        uttr.onend = () => { if (onEndCallback) onEndCallback(); };
-                        uttr.onerror = () => { isPlayingAll = false; };
-                        
-                        window.speechSynthesis.speak(uttr);
+
+                        // エンジン分岐処理
+                        if (audioSettings.engineType === "talkv3") {
+                            playTalkV3(text, onEndCallback);
+                        } else {
+                            const uttr = new SpeechSynthesisUtterance(text);
+                            const voices = window.speechSynthesis.getVoices();
+                            
+                            let selectedVoice = null;
+                            if (audioSettings.voiceName) {
+                                selectedVoice = voices.find(v => v.name === audioSettings.voiceName);
+                            }
+                            if (!selectedVoice) {
+                                selectedVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja'));
+                            }
+                            if (selectedVoice) uttr.voice = selectedVoice;
+                            
+                            uttr.volume = audioSettings.volume ?? 1.0;
+                            uttr.pitch = audioSettings.pitch ?? 1.4; 
+                            uttr.rate = audioSettings.rate ?? 1.3;  
+                            
+                            uttr.onend = () => { if (onEndCallback) onEndCallback(); };
+                            uttr.onerror = () => { isPlayingAll = false; };
+                            
+                            window.speechSynthesis.speak(uttr);
+                        }
                     }
 
                     function playCurrent() {
@@ -398,11 +622,24 @@
                     }
 
                     function pauseResume() {
-                        if (window.speechSynthesis.speaking) {
-                            if (window.speechSynthesis.paused) {
-                                window.speechSynthesis.resume();
-                            } else {
-                                window.speechSynthesis.pause();
+                        if (audioSettings.engineType === "talkv3") {
+                            if (talkV3Osc) {
+                                if (talkV3IsPaused) {
+                                    talkV3IsPaused = false;
+                                    talkV3NextChar();
+                                } else {
+                                    talkV3IsPaused = true;
+                                    clearTimeout(talkV3Timeout);
+                                    if (talkV3Gain && talkV3Ctx) talkV3Gain.gain.setValueAtTime(0, talkV3Ctx.currentTime);
+                                }
+                            }
+                        } else {
+                            if (window.speechSynthesis.speaking) {
+                                if (window.speechSynthesis.paused) {
+                                    window.speechSynthesis.resume();
+                                } else {
+                                    window.speechSynthesis.pause();
+                                }
                             }
                         }
                     }
@@ -410,6 +647,7 @@
                     function stopAudio() {
                         isPlayingAll = false;
                         window.speechSynthesis.cancel();
+                        stopTalkV3();
                     }
 
                     syncChannel.postMessage({ type: 'REQUEST_INIT' });
@@ -452,6 +690,7 @@
         renderSharedView();
         renderGMPanel();
         renderHistory();
+        renderAudioSettingsUI();
         
         if (document.getElementById('fontSizeSlider')) {
             const size = appData.popoutFontSize || 1.6;
@@ -664,6 +903,7 @@
         }
     }
 
+    // --- 履歴描画 ---
     function renderHistory() {
         const list = document.getElementById('historyList');
         list.innerHTML = "";
@@ -693,7 +933,7 @@
 
     // --- インポート / エクスポート ---
     function exportData() {
-        appData.version = "1.3.0"; 
+        appData.version = "1.4.0"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -715,12 +955,13 @@
                 
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.3.0",
+                        version: "1.4.0",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
                         currentIndex: imported.currentIndex || 0,
-                        popoutFontSize: imported.popoutFontSize || 1.6
+                        popoutFontSize: imported.popoutFontSize || 1.6,
+                        audioSettings: imported.audioSettings || { engineType: "standard", volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" }
                     };
                     updateSelector();
                     renderAll();
@@ -740,12 +981,13 @@
                     });
                     
                     appData = {
-                        version: "1.3.0",
+                        version: "1.4.0",
                         stories: convertedStories,
                         currentId: "",
                         replacements: {},
                         currentIndex: 0,
-                        popoutFontSize: 1.6
+                        popoutFontSize: 1.6,
+                        audioSettings: { engineType: "standard", volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" }
                     };
                     updateSelector();
                     renderAll();
@@ -764,7 +1006,7 @@
     function resetAllData() {
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
-            appData = { version: "1.3.0", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6 };
+            appData = { version: "1.4.0", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6, audioSettings: { engineType: "standard", volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" } };
             updateSelector();
             renderAll();
             showToast("データを初期化しました", "info");
@@ -782,6 +1024,17 @@
                 }
             } catch(e) { console.error("データ読み込みエラー", e); }
         }
+        
+        if (!appData.audioSettings) {
+            appData.audioSettings = { engineType: "standard", volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" };
+        }
+        
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => {
+                populateVoiceList();
+            };
+        }
+        
         updateSelector();
         renderAll();
     };
