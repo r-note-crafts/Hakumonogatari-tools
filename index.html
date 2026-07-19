@@ -3,306 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>怪談白物語 GMサポートツール</title>
+    <title>怪談白物語 GMツール</title>
     <style>
-        :root {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #212529;
-            --border-color: #ced4da;
-            --primary-color: #28a745;
-            --secondary-color: #6c757d;
-            --danger-color: #dc3545;
-            --accent-color: #007bff;
-        }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 12px;
-            line-height: 1.5;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        }
-        .card-title {
-            font-size: 1.05rem;
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #333;
-            border-left: 4px solid var(--accent-color);
-            padding-left: 8px;
-        }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 20px; background: #f4f4f9; margin: 0; color: #333; }
+        .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
+        .box { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h2, h3, h4 { margin-top: 0; }
         
-        /* 【超重要】画面共有用の完全固定エリア */
-        .share-card {
-            border: 3px solid #111111; 
-            background: #ffffff;
-            padding: 12px;
-            margin-bottom: 8px;
-        }
-        .share-window-title {
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 6px;
-        }
-        .share-display-zone {
-            height: 250px; /* ★高さを完全にロック（1pxも下に伸びない） */
-            overflow-y: auto; /* ★溢れたら枠内だけでスクロール */
-            border: 1px solid #888888;
-            background: #fafafa;
-            padding: 12px;
-            border-radius: 4px;
-        }
-        .share-content {
-            font-size: 1.15rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #000000;
-        }
-        .paragraph-block {
-            margin-bottom: 1.2em;
-            padding-bottom: 0.6em;
-            border-bottom: 1px dashed #dddddd;
-            animation: fadeIn 0.2s ease-in-out;
-        }
-        .paragraph-block:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .highlight {
-            background-color: #fff3cd;
-            font-weight: bold;
-            padding: 0 4px;
-            border: 1px solid #ffeeba;
-            border-radius: 3px;
-        }
+        /* 画面共有用エリア */
+        .shared-view { border: 3px solid #333; padding: 25px; min-height: 150px; font-size: 1.3em; background: #fafafa; line-height: 1.8; border-radius: 4px; }
+        .replaced { background: #ffeb3b; font-weight: bold; padding: 2px 6px; border: 1px solid #d4d400; border-radius: 4px; color: #000; }
         
-        /* 配信トリミング用安全地帯（誤映り込み防止のデッドスペース） */
-        .delivery-buffer {
-            height: 24px;
-            background: repeating-linear-gradient(45deg, #ffe3e3, #ffe3e3 10px, #fff5f5 10px, #fff5f5 20px);
-            border: 1px solid #ffa8a8;
-            border-radius: 4px;
-            margin-bottom: 16px;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #e03131;
-            line-height: 22px;
-            font-weight: bold;
-            user-select: none;
-        }
+        /* コントロール群 */
+        .stats { font-size: 1.5em; font-weight: bold; color: #d32f2f; margin-bottom: 10px; }
+        .keyword-pool { margin: 10px 0; padding: 12px; background: #e9ecef; border-radius: 4px; min-height: 24px; }
+        .done { text-decoration: line-through; color: #999; margin-right: 10px; }
+        .undone { font-weight: bold; margin-right: 10px; color: #333; }
+        
+        /* フォーム部品 */
+        input[type="text"], textarea, select { width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        textarea { height: 150px; resize: vertical; }
+        button { padding: 10px 15px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; transition: opacity 0.2s; }
+        button:hover { opacity: 0.85; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+        .btn-danger { background: #dc3545; }
+        .btn-success { background: #28a745; }
+        .btn-secondary { background: #6c757d; }
+        .btn-accent { background: #6f42c1; } 
+        .file-input-label { padding: 10px 15px; background: #28a745; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-block; }
+        #importFile { display: none; }
+        
+        /* 履歴リスト */
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; background: #fff3cd; padding: 8px 12px; border: 1px solid #ffeeba; border-radius: 4px; margin-bottom: 5px; font-weight: bold; }
+        .history-item button { padding: 4px 8px; font-size: 0.8em; background: #dc3545; }
 
-        /* ボタン類の配置 */
-        .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 4px;
-        }
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-align: center;
-            transition: opacity 0.1s;
-        }
-        .btn:active { opacity: 0.8; }
-        .btn:disabled { background-color: #e9ecef; color: #adb5bd; cursor: not-allowed; }
-        .btn-primary { background-color: var(--primary-color); color: white; }
-        .btn-secondary { background-color: var(--secondary-color); color: white; }
-        .btn-danger { background-color: var(--danger-color); color: white; }
-        .btn-accent { background-color: var(--accent-color); color: white; }
-        
-        /* フォーム系 */
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; color: #495057; }
-        .form-control { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
-        textarea.form-control { resize: vertical; height: 90px; }
-        
-        /* GMパネル */
-        .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .progress-badge { font-size: 1.3rem; font-weight: bold; color: var(--danger-color); }
-        .keyword-box { background: #f1f3f5; padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 12px; border-left: 4px solid #ced4da; }
-        .strike { text-decoration: line-through; color: #adb5bd; font-weight: normal; }
-        
-        /* キーワード改変 */
-        .mod-box { background: #e7f5ff; border: 1px solid #a5d8ff; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
-        .mod-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-        .mod-input { flex: 1; padding: 6px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.85rem; }
-        
-        /* 履歴 */
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e9ecef; font-size: 0.85rem; }
-        .kw-tag { font-weight: bold; color: #1c7ed6; }
+        /* トースト通知 */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; color: white; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(-10px); min-width: 200px; font-weight: bold; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #28a745; }
+        .toast.error { background: #dc3545; }
+        .toast.info { background: #17a2b8; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div id="toast-container"></div>
 
-    <!-- 1. 物語の表示（画面共有用） ★構造を完全ロック -->
-    <div class="card share-card">
-        <div class="share-window-title">
-            <span>物語の表示 (画面共有・配信トリミング領域)</span>
-        </div>
-        <div class="share-display-zone" id="share-display-zone">
-            <div class="share-content" id="share-content">シナリオを選択してください</div>
-        </div>
-        <!-- 送りボタン・ポップアウトボタンを配置 -->
-        <div class="btn-group">
-            <button class="btn btn-secondary" id="btn-prev" onclick="changeParagraph(-1)" disabled>＜ 前へ</button>
-            <button class="btn btn-primary" id="btn-next" onclick="changeParagraph(1)" disabled>次へ ＞</button>
-            <button class="btn btn-accent" id="btn-popout" onclick="openShareWindow()">ポップアウト表示</button>
+<div class="container">
+    <!-- 画面共有用エリア -->
+    <div class="box">
+        <h2>物語の表示（画面共有用）</h2>
+        <div id="sharedView" class="shared-view">シナリオを選択してください</div>
+        <div class="btn-group" style="margin-top: 15px;">
+            <button onclick="prevParagraph()" class="btn-secondary">＜ 前の段落へ</button>
+            <button onclick="nextParagraph()" class="btn-success">次の段落へ ＞</button>
+            <button onclick="openPopoutWindow()" class="btn-accent">ポップアウト表示</button>
         </div>
     </div>
 
-    <!-- ⚠️ 配信安全境界線（これより下はプレイヤーに見せてはいけない領域） -->
-    <div class="delivery-buffer">⚠️ ここから下は配信・共有を禁止（GM専用ネタバレ領域）</div>
-
-    <!-- 2. GM専用：セッション進行パネル -->
-    <div class="card">
-        <div class="card-title">GM専用：セッション進行パネル</div>
+    <!-- GM操作パネル -->
+    <div class="box">
+        <h3>GM専用：セッション進行パネル</h3>
         
-        <div class="form-group">
-            <input type="text" class="form-control" id="search-story" placeholder="シナリオを検索..." oninput="filterScenarios()">
+        <!-- シナリオ選択・検索 -->
+        <input type="text" id="searchScenario" placeholder="シナリオを検索..." onkeyup="filterScenarios()" style="margin-bottom: 5px;">
+        <select id="storySelector" onchange="loadStory()"></select>
+
+        <div class="btn-group" style="margin-bottom: 15px;">
+            <button onclick="loadScenarioForEdit()" class="btn-secondary">選択中のシナリオを編集</button>
+            <button onclick="deleteCurrentScenario()" class="btn-danger">選択中のシナリオを削除</button>
         </div>
+
+        <div class="stats">進捗: <span id="progress">0</span> / <span id="total">0</span> 件</div>
+        <div id="keywordStatus" class="keyword-pool">要キーワード: </div>
         
-        <div class="form-group">
-            <select class="form-control" id="select-story" onchange="selectScenario()">
-                <option value="">-- ストーリーを選択してください --</option>
-            </select>
-        </div>
-        
-        <div class="btn-group" style="margin-bottom: 16px;">
-            <button class="btn btn-secondary" style="font-size:0.8rem; padding:6px;" onclick="editScenario()">選択中のシナリオを編集</button>
-            <button class="btn btn-danger" style="font-size:0.8rem; padding:6px;" onclick="deleteScenario()">選択中のシナリオを削除</button>
-        </div>
-
-        <div class="status-row">
-            <span style="font-weight:bold; color:#495057;">進捗状況:</span>
-            <span class="progress-badge" id="progress-text">0 / 0 件</span>
-        </div>
-
-        <div class="keyword-box">
-            <strong>要キーワード:</strong> <span id="keywords-list"></span>
-        </div>
-
-        <!-- キーワードの改変 -->
-        <div class="mod-box">
-            <div style="font-weight:bold; font-size:0.9rem; color:#1c7ed6; margin-bottom:8px;">キーワードの改変</div>
-            <div class="mod-row">
-                <input type="text" class="mod-input" id="mod-target" placeholder="対象キーワード">
-                <span>→</span>
-                <input type="text" class="mod-input" id="mod-replacement" placeholder="改変後の言葉">
-                <button class="btn btn-accent" style="flex:none; padding:6px 12px; font-size:0.85rem;" onclick="addModification()">改変登録</button>
+        <!-- 改変登録 -->
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 4px; border: 1px solid #b6d4fe; margin-bottom: 15px;">
+            <h4 style="margin-bottom: 10px; color: #084298;">キーワードの改変</h4>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="beforeKey" placeholder="対象キーワード (例: 人形)" style="flex: 1; margin: 0;">
+                <span style="font-weight: bold;">→</span>
+                <input type="text" id="afterKey" placeholder="改変後の言葉 (例: タワシ)" style="flex: 1; margin: 0;">
+                <button onclick="addReplacement()">改変登録</button>
             </div>
         </div>
 
-        <div style="font-size:0.85rem; font-weight:bold; color:#495057; margin-bottom:4px;">現在の改変履歴 (修正・削除)</div>
-        <div id="history-container" style="max-height: 120px; overflow-y: auto; background:#fff; border:1px solid #e9ecef; padding:6px; border-radius:4px;">
-            <div style="color:#868e96; font-size:0.8rem; text-align:center; padding:8px;" id="history-empty">改変履歴はありません</div>
-            <div id="history-list"></div>
+        <!-- 改変履歴と解除 -->
+        <div style="margin-bottom: 15px;">
+            <h4>現在の改変履歴 (修正・削除)</h4>
+            <ul id="historyList" class="history-list">
+                <!-- JavaScriptで履歴を生成 -->
+            </ul>
         </div>
 
-        <!-- データの保存と復元 -->
-        <div style="margin-top: 20px; border-top: 1px solid #dee2e6; padding-top:12px;">
-            <div style="font-size:0.85rem; font-weight:bold; color:#495057; margin-bottom:8px;">データの保存と復元</div>
-            <button class="btn btn-secondary" style="width:100%; margin-bottom:8px; font-size:0.85rem;" onclick="exportData()">データをファイルに保存</button>
-            
-            <label class="btn btn-primary" style="display:block; width:100%; margin-bottom:8px; font-size:0.85rem; text-align:center; line-height:1.2;">
-                データファイルを読み込み
-                <input type="file" id="import-file" style="display:none;" onchange="importData(event)">
-            </label>
-            
-            <button class="btn btn-danger" style="width:100%; font-size:0.85rem;" onclick="clearAllData()">全データ初期化</button>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        
+        <h4>データの保存と復元</h4>
+        <div class="btn-group">
+            <button onclick="exportData()" class="btn-secondary">データをファイルに保存</button>
+            <label class="file-input-label" for="importFile">データファイルを読み込み</label>
+            <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+            <button onclick="resetAllData()" class="btn-danger">全データ初期化</button>
         </div>
     </div>
 
-    <!-- 3. シナリオ新規登録 -->
-    <div class="card" id="register-card">
-        <div class="card-title" id="register-title">シナリオ新規登録</div>
-        <input type="hidden" id="edit-id" value="">
-        
-        <div class="form-group">
-            <label for="story-title">タイトル（例：隙間男）</label>
-            <input type="text" class="form-control" id="story-title" placeholder="タイトルを入力">
+    <!-- シナリオ登録・編集フォーム -->
+    <div class="box" id="editorArea">
+        <h3 id="editorTitle">シナリオ新規登録</h3>
+        <input type="hidden" id="editTargetId" value="">
+        <input type="text" id="newTitle" placeholder="タイトル（例：隙間男）">
+        <textarea id="newText" placeholder="物語本文（※段落間に1行の空行を入れてください）"></textarea>
+        <input type="text" id="newKeywords" placeholder="ターゲットキーワード（カンマ区切り。例：人形,夜中,鏡）">
+        <div class="btn-group">
+            <button onclick="saveStory()" class="btn-success">シナリオを保存する</button>
+            <button onclick="cancelEdit()" id="cancelEditBtn" class="btn-secondary" style="display: none;">編集をキャンセル</button>
         </div>
-        
-        <div class="form-group">
-            <label for="story-body">物語本文（※段落間に1行の空行を入れてください）</label>
-            <textarea class="form-control" id="story-body" placeholder="ここに物語の本文を入力してください..."></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="story-keywords">ターゲットキーワード（カンマ区切り。例：人形,髪,押し入れ）</label>
-            <input type="text" class="form-control" id="story-keywords" placeholder="キーワードをカンマで区切って入力">
-        </div>
-        
-        <button class="btn btn-primary" style="width:100%;" id="btn-save-story" onclick="saveScenario()">シナリオを保存する</button>
-        <button class="btn btn-secondary" style="width:100%; margin-top:8px; display:none;" id="btn-cancel-edit" onclick="cancelEdit()">編集をキャンセル</button>
     </div>
-
 </div>
 
 <script>
-    // 状態管理
-    let scenarios = [];
-    let currentScenario = null;
-    let currentParagraphIndex = -1;
-    let modifications = {}; 
+    // --- データ構造 (v1.2.1) ---
+    let appData = { 
+        version: "1.2.1",
+        stories: {}, 
+        currentId: "", 
+        replacements: {}, 
+        currentIndex: 0 
+    };
 
-    // ポップアウト連動用管理
-    let shareWindow = null;
-    const syncChannel = new BroadcastChannel('hakumonogatari_share_channel');
+    // --- ポップアウト連動用管理 ---
+    let popoutWindow = null;
+    const syncChannel = new BroadcastChannel('kaidan_tool_popout_channel');
 
-    // ポップアウト側からの初期データ要求、またはリロード時の受け皿
     syncChannel.onmessage = (event) => {
         if (event.data.type === 'REQUEST_INIT') {
             sendContentToPopout();
         }
     };
 
-    // ポップアウト窓へ現在のHTMLコンテンツを送信する共通関数
     function sendContentToPopout() {
-        const html = document.getElementById('share-content').innerHTML;
+        const html = document.getElementById('sharedView').innerHTML;
         syncChannel.postMessage({ type: 'UPDATE_CONTENT', html: html });
     }
 
-    // ポップアウトウインドウを生成・起動する関数
-    function openShareWindow() {
-        if (!shareWindow || shareWindow.closed) {
-            shareWindow = window.open('', 'HakumonogatariShareWindow', 'width=600,height=450,menubar=no,toolbar=no,status=no');
+    function openPopoutWindow() {
+        if (!popoutWindow || popoutWindow.closed) {
+            popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=700,height=500,menubar=no,toolbar=no,status=no');
             
-            // 親ウインドウのCSSを丸ごと抽出してポップアウト側に注入する
             const styles = Array.from(document.styleSheets).map(sheet => {
                 try { return Array.from(sheet.cssRules).map(rule => rule.cssText).join(''); } catch(e) { return ''; }
             }).join('');
             
-            shareWindow.document.open();
-            shareWindow.document.write(`
+            popoutWindow.document.open();
+            popoutWindow.document.write(`
                 <!DOCTYPE html>
                 <html lang="ja">
                 <head>
@@ -310,413 +166,392 @@
                     <title>怪談白物語 - 画面共有ミラー</title>
                     <style>
                         ${styles}
-                        body { background: #fafafa; padding: 0; margin: 0; height: 100vh; overflow: hidden; }
-                        .share-display-zone { height: 100vh; border: none; border-radius: 0; background: #fafafa; overflow-y: auto; padding: 16px; }
+                        body { background: #fafafa; padding: 24px; margin: 0; height: 100vh; box-sizing: border-box; overflow: hidden; }
+                        .shared-view { height: 100%; border: none; padding: 0; background: transparent; overflow-y: auto; box-shadow: none; min-height: auto; font-size: 1.5em; line-height: 1.8; }
+                        p { margin-top: 0; margin-bottom: 1.5em; }
                     </style>
                 </head>
                 <body>
-                    <div class="share-display-zone" id="share-display-zone">
-                        <div class="share-content" id="share-content">${document.getElementById('share-content').innerHTML}</div>
-                    </div>
+                    <div id="sharedView" class="shared-view">${document.getElementById('sharedView').innerHTML}</div>
                     <script>
-                        const syncChannel = new BroadcastChannel('hakumonogatari_share_channel');
+                        const syncChannel = new BroadcastChannel('kaidan_tool_popout_channel');
+                        const view = document.getElementById('sharedView');
                         syncChannel.onmessage = (event) => {
                             if (event.data.type === 'UPDATE_CONTENT') {
-                                const zone = document.getElementById('share-display-zone');
-                                document.getElementById('share-content').innerHTML = event.data.html;
-                                // 自動最下部スクロール
-                                setTimeout(() => { zone.scrollTop = zone.scrollHeight; }, 30);
+                                view.innerHTML = event.data.html;
+                                setTimeout(() => { view.scrollTop = view.scrollHeight; }, 30);
                             }
                         };
-                        // 起動時に親ウインドウへ最新データを要求
                         syncChannel.postMessage({ type: 'REQUEST_INIT' });
                     <\/script>
                 </body>
                 </html>
             `);
-            shareWindow.document.close();
+            popoutWindow.document.close();
         } else {
-            // 既に開いている場合は前面へ
-            shareWindow.focus();
+            popoutWindow.focus();
         }
     }
 
-    // 初期化処理
-    window.addEventListener('DOMContentLoaded', () => {
-        const localData = localStorage.getItem('hakumonogatari_scenarios');
-        if (localData) {
-            try { scenarios = JSON.parse(localData); } catch(e) { scenarios = []; }
-        }
-        renderSelectOptions();
-    });
-
-    // 選択肢の描画
-    function renderSelectOptions(filterText = '') {
-        const select = document.getElementById('select-story');
-        select.innerHTML = '<option value="">-- ストーリーを選択してください --</option>';
-        
-        const filtered = scenarios.filter(s => s.title.toLowerCase().includes(filterText.toLowerCase()));
-        
-        filtered.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = s.title;
-            select.appendChild(opt);
-        });
-
-        if (currentScenario) {
-            select.value = currentScenario.id;
-        }
-    }
-
-    // 検索フィルタ
-    function filterScenarios() {
-        const text = document.getElementById('search-story').value;
-        renderSelectOptions(text);
-    }
-
-    // シナリオ選択時
-    function selectScenario() {
-        const id = document.getElementById('select-story').value;
-        if (!id) {
-            currentScenario = null;
-            currentParagraphIndex = -1;
-            modifications = {};
-            resetDisplay();
-            return;
-        }
-        
-        currentScenario = scenarios.find(s => s.id == id);
-        currentParagraphIndex = -1; 
-        modifications = {};
-        
-        document.getElementById('mod-target').value = '';
-        document.getElementById('mod-replacement').value = '';
-        
-        updateKeywordsDisplay();
-        updateHistoryDisplay();
-        updateStoryDisplay();
-    }
-
-    // 表示の初期化
-    function resetDisplay() {
-        document.getElementById('share-content').innerHTML = 'シナリオを選択してください';
-        document.getElementById('progress-text').innerText = '0 / 0 件';
-        document.getElementById('keywords-list').innerHTML = '';
-        document.getElementById('btn-prev').disabled = true;
-        document.getElementById('btn-next').disabled = true;
-        updateHistoryDisplay();
-        sendContentToPopout(); // ポップアウト側も同期初期化
-    }
-
-    // 段落の変更（進退）
-    function changeParagraph(step) {
-        if (!currentScenario) return;
-        const paragraphs = currentScenario.text.split('\n\n').filter(p => p.trim() !== '');
-        
-        const newIndex = currentParagraphIndex + step;
-        if (newIndex >= -1 && newIndex < paragraphs.length) {
-            currentParagraphIndex = newIndex;
-            updateStoryDisplay();
-        }
-    }
-
-    // 安全なHTMLエスケープ
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#39;');
-    }
-
-    // キーワード改変の適用
-    function applyModifications(text) {
-        let escaped = escapeHtml(text);
-        const targets = Object.keys(modifications).sort((a, b) => b.length - a.length);
-        
-        targets.forEach(target => {
-            if (!target) return;
-            const replacement = modifications[target];
-            const escapedTarget = escapeHtml(target).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const regex = new RegExp(escapedTarget, 'g');
-            escaped = escaped.replace(regex, `<span class="highlight">${escapeHtml(replacement)}</span>`);
-        });
-        
-        return escaped;
-    }
-
-    // 物語画面の更新処理 ★超重要スクロール制御
-    function updateStoryDisplay() {
-        const zone = document.getElementById('share-display-zone');
-        const content = document.getElementById('share-content');
-        
-        if (!currentScenario) {
-            resetDisplay();
-            return;
-        }
-        
-        const paragraphs = currentScenario.text.split('\n\n').filter(p => p.trim() !== '');
-        
-        if (currentParagraphIndex === -1) {
-            content.innerHTML = `<div style="color:#6c757d; text-align:center; padding-top:80px; font-size:1rem;">【${escapeHtml(currentScenario.title)}】<br>準備完了。「次の段落へ」を押してください。</div>`;
-            document.getElementById('progress-text').innerText = `0 / ${paragraphs.length} 件`;
-            document.getElementById('btn-prev').disabled = true;
-            document.getElementById('btn-next').disabled = paragraphs.length === 0;
-            sendContentToPopout(); // ポップアウト側へ送信
-            return;
-        }
-        
-        let html = '';
-        for (let i = 0; i <= currentParagraphIndex; i++) {
-            if (paragraphs[i]) {
-                html += `<div class="paragraph-block">${applyModifications(paragraphs[i])}</div>`;
-            }
-        }
-        
-        content.innerHTML = html;
-        
-        // ★最重要：外枠サイズを固定しているため、自動で最下部までスクロールさせる
+    // --- ユーティリティ関数 ---
+    function showToast(msg, type = "success") {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        void toast.offsetWidth; 
+        toast.classList.add('show');
         setTimeout(() => {
-            zone.scrollTop = zone.scrollHeight;
-        }, 30);
-        
-        // UI状態の同期
-        document.getElementById('progress-text').innerText = `${currentParagraphIndex + 1} / ${paragraphs.length} 件`;
-        document.getElementById('btn-prev').disabled = (currentParagraphIndex <= -1);
-        document.getElementById('btn-next').disabled = (currentParagraphIndex >= paragraphs.length - 1);
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
 
-        // ★ポップアウト側へもリアルタイムにコンテンツを同期転送
+    function escapeHTML(str) {
+        if (!str) return "";
+        return str.replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag] || tag));
+    }
+
+    function persistData() {
+        localStorage.setItem('kaidan_data', JSON.stringify(appData));
+    }
+
+    function renderAll() {
+        persistData();
+        renderSharedView();
+        renderGMPanel();
+        renderHistory();
+    }
+
+    // --- シナリオ管理 (CRUD) ---
+    function saveStory() {
+        const targetId = document.getElementById('editTargetId').value;
+        const title = document.getElementById('newTitle').value.trim();
+        const text = document.getElementById('newText').value;
+        const keywordsRaw = document.getElementById('newKeywords').value;
+        
+        if (!title || !text) { showToast("タイトルと本文は必須です", "error"); return; }
+        
+        const keywordsArray = keywordsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const uniqueKeywords = [...new Set(keywordsArray)];
+        
+        const id = targetId || ("s" + Date.now());
+        
+        appData.stories[id] = { title: title, text: text, keywords: uniqueKeywords };
+        
+        cancelEdit(); 
+        updateSelector();
+        showToast(targetId ? "シナリオを更新しました" : "シナリオを新規登録しました");
+        
+        if(targetId === appData.currentId) renderAll();
+    }
+
+    function updateSelector() {
+        const sel = document.getElementById('storySelector');
+        sel.innerHTML = '<option value="">-- ストーリーを選択してください --</option>';
+        for (let id in appData.stories) {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = appData.stories[id].title;
+            sel.appendChild(option);
+        }
+        if (appData.stories[appData.currentId]) {
+            sel.value = appData.currentId;
+        }
+        filterScenarios(); 
+        persistData();
+    }
+
+    function filterScenarios() {
+        const query = document.getElementById('searchScenario').value.toLowerCase();
+        const sel = document.getElementById('storySelector');
+        const options = sel.getElementsByTagName('option');
+        for (let i = 1; i < options.length; i++) {
+            const txt = options[i].textContent.toLowerCase();
+            options[i].style.display = txt.includes(query) ? "" : "none";
+        }
+    }
+
+    function loadStory() {
+        appData.currentId = document.getElementById('storySelector').value;
+        appData.currentIndex = 0;
+        appData.replacements = {};
+        renderAll();
+    }
+
+    // --- 編集・削除 ---
+    function loadScenarioForEdit() {
+        const id = appData.currentId;
+        const s = appData.stories[id];
+        if (!s) { showToast("編集するシナリオを選択してください", "error"); return; }
+        
+        document.getElementById('editorTitle').textContent = `シナリオ編集: ${s.title}`;
+        document.getElementById('editTargetId').value = id;
+        document.getElementById('newTitle').value = s.title;
+        document.getElementById('newText').value = s.text;
+        document.getElementById('newKeywords').value = s.keywords.join(', ');
+        
+        document.getElementById('cancelEditBtn').style.display = "inline-block";
+        document.getElementById('editorArea').scrollIntoView({ behavior: "smooth" });
+        showToast("編集モードに移行しました", "info");
+    }
+
+    function cancelEdit() {
+        document.getElementById('editorTitle').textContent = "シナリオ新規登録";
+        document.getElementById('editTargetId').value = "";
+        document.getElementById('newTitle').value = "";
+        document.getElementById('newText').value = "";
+        document.getElementById('newKeywords').value = "";
+        document.getElementById('cancelEditBtn').style.display = "none";
+    }
+
+    function deleteCurrentScenario() {
+        const id = appData.currentId;
+        if (!id || !appData.stories[id]) { showToast("削除するシナリオが選択されていません", "error"); return; }
+        
+        if (confirm(`シナリオ「${appData.stories[id].title}」を削除しますか？\nこの操作は取り消せません。`)) {
+            delete appData.stories[id];
+            appData.currentId = "";
+            appData.currentIndex = 0;
+            appData.replacements = {};
+            updateSelector();
+            renderAll();
+            showToast("シナリオを削除しました", "success");
+        }
+    }
+
+    // --- 進行・描画ロジック ---
+    function nextParagraph() {
+        const s = appData.stories[appData.currentId];
+        if (!s) { showToast("ストーリーを選択してください", "error"); return; }
+        const paragraphs = s.text.split(/\n\s*\n/);
+        if (appData.currentIndex < paragraphs.length) {
+            appData.currentIndex++;
+            renderAll();
+        } else {
+            showToast("物語は最後まで表示されています", "info");
+        }
+    }
+
+    function prevParagraph() {
+        if (appData.currentIndex > 0) {
+            appData.currentIndex--;
+            renderAll();
+        } else {
+            showToast("これ以上戻れません", "error");
+        }
+    }
+
+    function applyReplacementsSafely(text) {
+        let htmlText = escapeHTML(text);
+        const keys = Object.keys(appData.replacements).sort((a, b) => b.length - a.length);
+        let placeholders = [];
+        
+        keys.forEach((key, index) => {
+            const escapedKey = escapeHTML(key);
+            const safeRegex = new RegExp(escapedKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+            htmlText = htmlText.replace(safeRegex, `__PLACEHOLDER_${index}__`);
+            placeholders[index] = `<span class="replaced">${escapeHTML(appData.replacements[key])}</span>`;
+        });
+        
+        placeholders.forEach((ph, index) => {
+            htmlText = htmlText.replace(new RegExp(`__PLACEHOLDER_${index}__`, 'g'), ph);
+        });
+        
+        return htmlText.replace(/\n/g, '<br>');
+    }
+
+    function renderSharedView() {
+        const s = appData.stories[appData.currentId];
+        if (!s) {
+            document.getElementById('sharedView').innerHTML = "シナリオを選択してください";
+            sendContentToPopout();
+            return;
+        }
+        
+        const paragraphs = s.text.split(/\n\s*\n/);
+        let html = "";
+        for (let i = 0; i < appData.currentIndex; i++) {
+            const safeParagraph = applyReplacementsSafely(paragraphs[i]);
+            html += `<p>${safeParagraph}</p>`;
+        }
+        document.getElementById('sharedView').innerHTML = html || "「次の段落へ」を押すと物語が始まります。";
+        
         sendContentToPopout();
     }
 
-    // 要キーワードの表示更新
-    function updateKeywordsDisplay() {
-        const container = document.getElementById('keywords-list');
-        if (!currentScenario) {
-            container.innerHTML = '';
+    function renderGMPanel() {
+        const s = appData.stories[appData.currentId];
+        if (!s) {
+            document.getElementById('progress').textContent = "0";
+            document.getElementById('total').textContent = "0";
+            document.getElementById('keywordStatus').innerHTML = "要キーワード: ";
             return;
         }
-        
-        const html = currentScenario.keywords.map(kw => {
-            const isModified = modifications.hasOwnProperty(kw);
-            return `<span class="${isModified ? 'strike' : 'kw-tag'}">${escapeHtml(kw)}</span>`;
-        }).join(', ');
-        
-        container.innerHTML = html;
+
+        let count = 0;
+        let htmlStatus = "";
+        s.keywords.forEach(k => {
+            if (appData.replacements[k]) {
+                count++;
+                htmlStatus += `<span class="done">${escapeHTML(k)}</span> `;
+            } else {
+                htmlStatus += `<span class="undone">${escapeHTML(k)}</span> `;
+            }
+        });
+        document.getElementById('progress').textContent = count;
+        document.getElementById('total').textContent = s.keywords.length;
+        document.getElementById('keywordStatus').innerHTML = "要キーワード: " + htmlStatus;
     }
 
-    // 改変の登録
-    function addModification() {
-        if (!currentScenario) return;
-        const target = document.getElementById('mod-target').value.trim();
-        const replacement = document.getElementById('mod-replacement').value.trim();
-        
-        if (!target || !replacement) {
-            alert('対象キーワードと改変後の言葉の両方を入力してください。');
-            return;
-        }
-        
-        modifications[target] = replacement;
-        
-        document.getElementById('mod-target').value = '';
-        document.getElementById('mod-replacement').value = '';
-        
-        updateKeywordsDisplay();
-        updateHistoryDisplay();
-        updateStoryDisplay();
-    }
-
-    // 改変の解除
-    function removeModification(target) {
-        if (modifications.hasOwnProperty(target)) {
-            delete modifications[target];
-            updateKeywordsDisplay();
-            updateHistoryDisplay();
-            updateStoryDisplay();
+    // --- 改変管理 (登録・削除) ---
+    function addReplacement() {
+        const b = document.getElementById('beforeKey').value.trim();
+        const a = document.getElementById('afterKey').value.trim();
+        if (b && a) {
+            appData.replacements[b] = a;
+            document.getElementById('beforeKey').value = "";
+            document.getElementById('afterKey').value = "";
+            renderAll();
+            showToast(`「${b}」を「${a}」に改変しました`);
+        } else {
+            showToast("対象と改変後の両方を入力してください", "error");
         }
     }
 
-    // 改変履歴の描画
-    function updateHistoryDisplay() {
-        const list = document.getElementById('history-list');
-        const empty = document.getElementById('history-empty');
-        list.innerHTML = '';
+    function removeReplacement(key) {
+        if (appData.replacements[key]) {
+            const oldValue = appData.replacements[key];
+            delete appData.replacements[key];
+            renderAll();
+            showToast(`「${key} → ${oldValue}」の改変を取り消しました`, "info");
+        }
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = "";
+        const keys = Object.keys(appData.replacements);
         
-        const keys = Object.keys(modifications);
         if (keys.length === 0) {
-            empty.style.display = 'block';
+            list.innerHTML = '<li style="color: #666; font-weight: normal;">改変履歴はありません</li>';
             return;
         }
-        empty.style.display = 'none';
         
-        keys.forEach(target => {
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            item.innerHTML = `
-                <span><strong>${escapeHtml(target)}</strong> → <span class="highlight">${escapeHtml(modifications[target])}</span></span>
-                <button class="btn btn-danger btn-sm" style="flex:none; padding:2px 6px; font-size:0.75rem;" onclick="removeModification('${escapeHtml(target).replace(/'/g, "\\'")}')">解除</button>
-            `;
-            list.appendChild(item);
+        keys.forEach(key => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            
+            const textSpan = document.createElement('span');
+            textSpan.textContent = `${key} → ${appData.replacements[key]}`;
+            
+            const delBtn = document.createElement('button');
+            delBtn.textContent = '解除';
+            delBtn.onclick = () => removeReplacement(key);
+            
+            li.appendChild(textSpan);
+            li.appendChild(delBtn);
+            list.appendChild(li);
         });
     }
 
-    // シナリオの保存（新規・編集共通）
-    function saveScenario() {
-        const title = document.getElementById('story-title').value.trim();
-        const body = document.getElementById('story-body').value.trim();
-        const kwsText = document.getElementById('story-keywords').value.trim();
-        const editId = document.getElementById('edit-id').value;
-        
-        if (!title || !body) {
-            alert('タイトルと物語本文は必須です。');
-            return;
-        }
-        
-        const keywords = kwsText ? kwsText.split(',').map(k => k.trim()).filter(k => k !== '') : [];
-        
-        if (editId) {
-            const idx = scenarios.findIndex(s => s.id == editId);
-            if (idx !== -1) {
-                scenarios[idx].title = title;
-                scenarios[idx].text = body;
-                scenarios[idx].keywords = keywords;
-            }
-            cancelEdit();
-        } else {
-            const newScenario = {
-                id: Date.now(),
-                title: title,
-                text: body,
-                keywords: keywords
-            };
-            scenarios.push(newScenario);
-            
-            document.getElementById('story-title').value = '';
-            document.getElementById('story-body').value = '';
-            document.getElementById('story-keywords').value = '';
-        }
-        
-        saveToLocalStorage();
-        renderSelectOptions();
-        alert('シナリオを保存しました。');
-    }
-
-    // 編集モードに入る
-    function editScenario() {
-        if (!currentScenario) {
-            alert('編集するシナリオを選択してください。');
-            return;
-        }
-        
-        document.getElementById('register-title').textContent = 'シナリオの編集';
-        document.getElementById('edit-id').value = currentScenario.id;
-        document.getElementById('story-title').value = currentScenario.title;
-        document.getElementById('story-body').value = currentScenario.text;
-        document.getElementById('story-keywords').value = currentScenario.keywords.join(', ');
-        
-        document.getElementById('btn-save-story').textContent = '変更を保存する';
-        document.getElementById('btn-cancel-edit').style.display = 'block';
-        
-        document.getElementById('register-card').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // 編集キャンセル
-    function cancelEdit() {
-        document.getElementById('register-title').textContent = 'シナリオ新規登録';
-        document.getElementById('edit-id').value = '';
-        document.getElementById('story-title').value = '';
-        document.getElementById('story-body').value = '';
-        document.getElementById('story-keywords').value = '';
-        
-        document.getElementById('btn-save-story').textContent = 'シナリオを保存する';
-        document.getElementById('btn-cancel-edit').style.display = 'none';
-    }
-
-    // シナリオ削除
-    function deleteScenario() {
-        if (!currentScenario) {
-            alert('削除するシナリオを選択してください。');
-            return;
-        }
-        if (!confirm(`シナリオ「${currentScenario.title}」を削除してもよろしいですか？`)) return;
-        
-        scenarios = scenarios.filter(s => s.id !== currentScenario.id);
-        currentScenario = null;
-        currentParagraphIndex = -1;
-        modifications = {};
-        
-        saveToLocalStorage();
-        renderSelectOptions();
-        resetDisplay();
-        alert('シナリオを削除しました。');
-    }
-
-    // ローカルストレージへの書き込み
-    function saveToLocalStorage() {
-        localStorage.setItem('hakumonogatari_scenarios', JSON.stringify(scenarios));
-    }
-
-    // データエクスポート
+    // --- インポート / エクスポート 【V1.2.1 ハイブリッド修正版】 ---
     function exportData() {
-        if (scenarios.length === 0) {
-            alert('保存するシナリオデータがありません。');
-            return;
-        }
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scenarios, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `hakumonogatari_backup_${Date.now()}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
+        appData.version = "1.2.1"; 
+        const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kaidan_tool_backup_${Date.now()}.json`;
+        a.click();
+        
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast("データをエクスポートしました");
     }
 
-    // データインポート
     function importData(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
                 const imported = JSON.parse(e.target.result);
-                if (Array.isArray(imported)) {
-                    if (confirm('既存のデータに上書きしてよろしいですか？（現在のストックは消去されます）')) {
-                        scenarios = imported;
-                        saveToLocalStorage();
-                        currentScenario = null;
-                        currentParagraphIndex = -1;
-                        modifications = {};
-                        renderSelectOptions();
-                        resetDisplay();
-                        alert('データを正常に復元しました！');
-                    }
+                
+                // パターンA: 統合版オブジェクト形式 { version: "...", stories: {...} } の判別
+                if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
+                    appData = {
+                        version: "1.2.1",
+                        stories: imported.stories || {},
+                        currentId: imported.currentId || "",
+                        replacements: imported.replacements || {},
+                        currentIndex: imported.currentIndex || 0
+                    };
+                    updateSelector();
+                    renderAll();
+                    showToast("データを正常に復元しました");
+                } 
+                // パターンB: 旧ツール等の配列形式 [ {title, text, keywords}, ... ] の自動救済・変換
+                else if (Array.isArray(imported)) {
+                    const convertedStories = {};
+                    imported.forEach((s, idx) => {
+                        if (s.title && s.text) {
+                            const id = s.id || ("s_" + Date.now() + "_" + idx);
+                            convertedStories[id] = {
+                                title: s.title,
+                                text: s.text,
+                                keywords: Array.isArray(s.keywords) ? s.keywords : []
+                            };
+                        }
+                    });
+                    
+                    appData = {
+                        version: "1.2.1",
+                        stories: convertedStories,
+                        currentId: "",
+                        replacements: {},
+                        currentIndex: 0
+                    };
+                    updateSelector();
+                    renderAll();
+                    showToast("旧形式データを自動変換して復元しました");
                 } else {
-                    alert('ファイルの形式が正しくありません。');
+                    showToast("無効なデータ形式です", "error");
                 }
             } catch (err) {
-                alert('ファイルの読み込みに失敗しました。正いJSONファイルか確認してください。');
+                showToast("ファイルの解析に失敗しました", "error");
             }
         };
         reader.readAsText(file);
         event.target.value = ''; 
     }
 
-    // 全初期化
-    function clearAllData() {
-        if (!confirm('本当にすべてのシナリオデータを初期化しますか？この操作は取り消せません。')) return;
-        localStorage.removeItem('hakumonogatari_scenarios');
-        scenarios = [];
-        currentScenario = null;
-        currentParagraphIndex = -1;
-        modifications = {};
-        renderSelectOptions();
-        resetDisplay();
-        alert('すべてのデータを初期化しました。');
+    function resetAllData() {
+        if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
+            localStorage.removeItem('kaidan_data');
+            appData = { version: "1.2.1", stories: {}, currentId: "", replacements: {}, currentIndex: 0 };
+            updateSelector();
+            renderAll();
+            showToast("データを初期化しました", "info");
+        }
     }
-</script>
 
+    // --- 初期化処理 ---
+    window.onload = () => {
+        const saved = localStorage.getItem('kaidan_data');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (typeof parsed.stories === 'object') {
+                    appData = Object.assign(appData, parsed);
+                }
+            } catch(e) { console.error("データ読み込みエラー", e); }
+        }
+        updateSelector();
+        renderAll();
+    };
+</script>
 </body>
 </html>
