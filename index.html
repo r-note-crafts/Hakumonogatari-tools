@@ -62,11 +62,11 @@
             <button onclick="nextParagraph()" class="btn-success">次の段落へ ＞</button>
             <button onclick="openPopoutWindow()" class="btn-accent">ポップアウト表示</button>
             
-            <!-- 文字サイズリアルタイムコントローラー -->
+            <!-- 文字サイズリアルタイムコントローラー（0.5em 〜 10.0em まで拡張） -->
             <div style="display: flex; align-items: center; gap: 8px; background: #e9ecef; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ccc;">
                 <span style="font-weight: bold; color: #495057;">共有窓文字サイズ:</span>
-                <input type="range" id="fontSizeSlider" min="1.0" max="4.0" step="0.1" value="1.6" oninput="changeFontSize(this.value)" style="width: 100px; margin: 0; cursor: pointer;">
-                <span id="fontSizeDisplay" style="font-weight: bold; color: #007bff; width: 28px; text-align: right;">1.6</span><span style="font-weight: bold; color: #495057;">em</span>
+                <input type="range" id="fontSizeSlider" min="0.5" max="10.0" step="0.1" value="1.6" oninput="changeFontSize(this.value)" style="width: 120px; margin: 0; cursor: pointer;">
+                <span id="fontSizeDisplay" style="font-weight: bold; color: #007bff; width: 36px; text-align: right;">1.6</span><span style="font-weight: bold; color: #495057;">em</span>
             </div>
         </div>
     </div>
@@ -132,14 +132,14 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.2.3) ---
+    // --- データ構造 (v1.2.4) ---
     let appData = { 
-        version: "1.2.3",
+        version: "1.2.4",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
         currentIndex: 0,
-        popoutFontSize: 1.6 // 初期フォントサイズ (em)
+        popoutFontSize: 1.6 
     };
 
     // --- ポップアウト連動用管理 ---
@@ -163,7 +163,7 @@
 
     function changeFontSize(val) {
         appData.popoutFontSize = parseFloat(val);
-        document.getElementById('fontSizeDisplay').textContent = val;
+        document.getElementById('fontSizeDisplay').textContent = appData.popoutFontSize.toFixed(1);
         persistData();
         sendContentToPopout();
     }
@@ -206,7 +206,7 @@
                             overflow-y: auto; 
                             box-shadow: none; 
                             min-height: auto; 
-                            font-size: 1.6em; /* JS側で動的に上書きされます */
+                            font-size: 1.6em; 
                             line-height: 2.0; 
                             letter-spacing: 0.05em;
                         }
@@ -276,7 +276,6 @@
         renderGMPanel();
         renderHistory();
         
-        // コントロール画面のスライダーと数値をUIに同期
         if (document.getElementById('fontSizeSlider')) {
             const size = appData.popoutFontSize || 1.6;
             document.getElementById('fontSizeSlider').value = size;
@@ -489,6 +488,7 @@
         }
     }
 
+    // --- 履歴描画 ---
     function renderHistory() {
         const list = document.getElementById('historyList');
         list.innerHTML = "";
@@ -516,9 +516,9 @@
         });
     }
 
-    // --- インポート / エクスポート （ハイブリッド対応版） ---
+    // --- インポート / エクスポート ---
     function exportData() {
-        appData.version = "1.2.3"; 
+        appData.version = "1.2.4"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -538,10 +538,9 @@
             try {
                 const imported = JSON.parse(e.target.result);
                 
-                // パターンA: オブジェクト形式 { version: "...", stories: {...} } の判別
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.2.3",
+                        version: "1.2.4",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -552,7 +551,6 @@
                     renderAll();
                     showToast("データを正常に復元しました");
                 } 
-                // パターンB: 旧ツール等の配列形式 [ {title, text, keywords}, ... ] の自動救済・変換
                 else if (Array.isArray(imported)) {
                     const convertedStories = {};
                     imported.forEach((s, idx) => {
@@ -567,7 +565,7 @@
                     });
                     
                     appData = {
-                        version: "1.2.3",
+                        version: "1.2.4",
                         stories: convertedStories,
                         currentId: "",
                         replacements: {},
@@ -591,7 +589,7 @@
     function resetAllData() {
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
-            appData = { version: "1.2.3", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6 };
+            appData = { version: "1.2.4", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6 };
             updateSelector();
             renderAll();
             showToast("データを初期化しました", "info");
