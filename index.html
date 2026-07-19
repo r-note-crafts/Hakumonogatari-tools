@@ -26,7 +26,7 @@
         button { padding: 10px 15px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; transition: opacity 0.2s; }
         button:hover { opacity: 0.85; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; align-items: center; }
         .btn-danger { background: #dc3545; }
         .btn-success { background: #28a745; }
         .btn-secondary { background: #6c757d; }
@@ -61,6 +61,13 @@
             <button onclick="prevParagraph()" class="btn-secondary">＜ 前の段落へ</button>
             <button onclick="nextParagraph()" class="btn-success">次の段落へ ＞</button>
             <button onclick="openPopoutWindow()" class="btn-accent">ポップアウト表示</button>
+            
+            <!-- 文字サイズリアルタイムコントローラー -->
+            <div style="display: flex; align-items: center; gap: 8px; background: #e9ecef; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ccc;">
+                <span style="font-weight: bold; color: #495057;">共有窓文字サイズ:</span>
+                <input type="range" id="fontSizeSlider" min="1.0" max="4.0" step="0.1" value="1.6" oninput="changeFontSize(this.value)" style="width: 100px; margin: 0; cursor: pointer;">
+                <span id="fontSizeDisplay" style="font-weight: bold; color: #007bff; width: 28px; text-align: right;">1.6</span><span style="font-weight: bold; color: #495057;">em</span>
+            </div>
         </div>
     </div>
 
@@ -125,13 +132,14 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.2.2) ---
+    // --- データ構造 (v1.2.3) ---
     let appData = { 
-        version: "1.2.2",
+        version: "1.2.3",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
-        currentIndex: 0 
+        currentIndex: 0,
+        popoutFontSize: 1.6 // 初期フォントサイズ (em)
     };
 
     // --- ポップアウト連動用管理 ---
@@ -146,7 +154,18 @@
 
     function sendContentToPopout() {
         const html = document.getElementById('sharedView').innerHTML;
-        syncChannel.postMessage({ type: 'UPDATE_CONTENT', html: html });
+        syncChannel.postMessage({ 
+            type: 'UPDATE_CONTENT', 
+            html: html,
+            fontSize: appData.popoutFontSize || 1.6
+        });
+    }
+
+    function changeFontSize(val) {
+        appData.popoutFontSize = parseFloat(val);
+        document.getElementById('fontSizeDisplay').textContent = val;
+        persistData();
+        sendContentToPopout();
     }
 
     function openPopoutWindow() {
@@ -164,13 +183,11 @@
                 <head>
                     <meta charset="UTF-8">
                     <title>怪談白物語 - 画面共有ミラー</title>
-                    <!-- 恐ろしい雰囲気にぴったりのGoogle Fonts「ニューテゴミン」を読み込み -->
                     <link rel="preconnect" href="https://fonts.googleapis.com">
                     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                     <link href="https://fonts.googleapis.com/css2?family=New+Tegomin&display=swap" rel="stylesheet">
                     <style>
                         ${styles}
-                        /* 背景を禍々しい漆黒に、文字色を血の気の引いた灰白色に変更 */
                         body { 
                             background: #0d0404; 
                             color: #ded3d3; 
@@ -189,13 +206,12 @@
                             overflow-y: auto; 
                             box-shadow: none; 
                             min-height: auto; 
-                            font-size: 1.6em; 
+                            font-size: 1.6em; /* JS側で動的に上書きされます */
                             line-height: 2.0; 
                             letter-spacing: 0.05em;
                         }
                         p { margin-top: 0; margin-bottom: 1.5em; }
                         
-                        /* 【重要】置き換えたワードだけは元のフォント（サンセリフ/ゴシック）を強制維持 */
                         .replaced { 
                             font-family: 'Helvetica Neue', Arial, sans-serif !important; 
                             background: #ffeb3b !important; 
@@ -213,6 +229,7 @@
                         syncChannel.onmessage = (event) => {
                             if (event.data.type === 'UPDATE_CONTENT') {
                                 view.innerHTML = event.data.html;
+                                view.style.fontSize = event.data.fontSize + 'em';
                                 setTimeout(() => { view.scrollTop = view.scrollHeight; }, 30);
                             }
                         };
@@ -258,6 +275,13 @@
         renderSharedView();
         renderGMPanel();
         renderHistory();
+        
+        // コントロール画面のスライダーと数値をUIに同期
+        if (document.getElementById('fontSizeSlider')) {
+            const size = appData.popoutFontSize || 1.6;
+            document.getElementById('fontSizeSlider').value = size;
+            document.getElementById('fontSizeDisplay').textContent = size.toFixed(1);
+        }
     }
 
     // --- シナリオ管理 (CRUD) ---
@@ -494,7 +518,7 @@
 
     // --- インポート / エクスポート （ハイブリッド対応版） ---
     function exportData() {
-        appData.version = "1.2.2"; 
+        appData.version = "1.2.3"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -517,11 +541,12 @@
                 // パターンA: オブジェクト形式 { version: "...", stories: {...} } の判別
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.2.2",
+                        version: "1.2.3",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
-                        currentIndex: imported.currentIndex || 0
+                        currentIndex: imported.currentIndex || 0,
+                        popoutFontSize: imported.popoutFontSize || 1.6
                     };
                     updateSelector();
                     renderAll();
@@ -542,11 +567,12 @@
                     });
                     
                     appData = {
-                        version: "1.2.2",
+                        version: "1.2.3",
                         stories: convertedStories,
                         currentId: "",
                         replacements: {},
-                        currentIndex: 0
+                        currentIndex: 0,
+                        popoutFontSize: 1.6
                     };
                     updateSelector();
                     renderAll();
@@ -565,7 +591,7 @@
     function resetAllData() {
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
-            appData = { version: "1.2.2", stories: {}, currentId: "", replacements: {}, currentIndex: 0 };
+            appData = { version: "1.2.3", stories: {}, currentId: "", replacements: {}, currentIndex: 0, popoutFontSize: 1.6 };
             updateSelector();
             renderAll();
             showToast("データを初期化しました", "info");
