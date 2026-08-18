@@ -160,7 +160,6 @@
             </div>
             <div style="display: flex; align-items: center; gap: 10px; font-size: 0.85em; font-weight: bold; color: #555;">
                 <label>ログ文字サイズ: <span id="logFontSizeDisp">0.9</span>em</label>
-                <!-- 本文サイズ(0.5〜10.0)に合わせて最大最小・刻みを拡張 -->
                 <input type="range" id="logFontSizeSlider" min="0.5" max="10.0" step="0.1" value="0.9" oninput="updateLogSettings()" style="width: 140px; margin: 0; cursor: pointer;">
             </div>
         </div>
@@ -264,7 +263,7 @@
             showReplacement: true,
             fontSize: 0.9
         },
-        logs: [], // { id, type: 'dice'|'replace', text, time }
+        logs: [],
         audioSettings: {
             volume: 1.0,
             rate: 1.3,
@@ -592,6 +591,18 @@
         const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=750,height=500,menubar=no,toolbar=no,status=no');
         if (!popoutWindow) return;
         
+        // 初期コンテンツを準備
+        const s = appData.stories[appData.currentId];
+        let initialHtml = "「次の段落へ」を押すと物語が始まります。";
+        if (s) {
+            const rawParagraphs = s.text.split(/\n\s*\n/);
+            let paragraphs = "";
+            for (let i = 0; i < appData.currentIndex; i++) {
+                paragraphs += `<p>${applyReplacementsSafely(rawParagraphs[i], false)}</p>`;
+            }
+            if (paragraphs) initialHtml = paragraphs;
+        }
+
         popoutWindow.document.open();
         popoutWindow.document.write(`
             <!DOCTYPE html>
@@ -615,7 +626,6 @@
                         transition: background-color 0.2s;
                         position: relative;
                     }
-                    /* 本文エリア：ログ枠と重ならないよう下部に可変余白を自動確保 */
                     .shared-view { 
                         height: 100%; 
                         border: none; 
@@ -641,7 +651,7 @@
                         padding: 0 2px;
                     }
 
-                    /* 右下ログ枠 (4行分を基準に文字サイズ追従・内部スクロール) */
+                    /* 右下ログ枠 */
                     .log-overlay-box {
                         position: fixed;
                         bottom: 15px;
@@ -708,12 +718,9 @@
                 </style>
             </head>
             <body>
-                <div id="sharedView" class="shared-view"></div>
-                
-                <!-- 右下ログ表示枠 -->
+                <div id="sharedView" class="shared-view">${initialHtml}</div>
                 <div id="logBox" class="log-overlay-box" style="display: none;"></div>
 
-                <!-- 読み上げメニュー -->
                 <div class="audio-ctrl-container">
                     <button id="audioMainBtn" class="audio-main-btn" onclick="toggleAudioMenu()">【読み上げ ＞】</button>
                     <div id="audioSubMenu" class="audio-sub-menu">
@@ -746,8 +753,10 @@
                         document.body.style.setProperty('--theme-font-size', (fontSize || 1.6) + 'em');
                         
                         if (t.strokeWidth > 0) {
-                            const w = t.strokeWidth, c = t.stroke || '#000';
-                            document.body.style.setProperty('--theme-stroke', \`-\${w}px -\${w}px 0 \${c}, \${w}px -\${w}px 0 \${c}, -\${w}px \${w}px 0 \${c}, \${w}px \${w}px 0 \${c}\`);
+                            const w = t.strokeWidth;
+                            const c = t.stroke || '#000';
+                            const strokeStr = '-' + w + 'px -' + w + 'px 0 ' + c + ', ' + w + 'px -' + w + 'px 0 ' + c + ', -' + w + 'px ' + w + 'px 0 ' + c + ', ' + w + 'px ' + w + 'px 0 ' + c;
+                            document.body.style.setProperty('--theme-stroke', strokeStr);
                         } else {
                             document.body.style.setProperty('--theme-stroke', 'none');
                         }
@@ -764,7 +773,6 @@
                         const logSize = logSettings.fontSize || 0.9;
                         document.body.style.setProperty('--log-font-size', logSize + 'em');
                         
-                        // ログ枠の高さ＋余白分を本文の下部パディングとして動的確保（重なり防止）
                         const frameHeightEm = logSize * 1.5 * 4 + 2.5;
                         document.body.style.setProperty('--content-bottom-padding', frameHeightEm + 'em');
 
@@ -877,6 +885,11 @@
         `);
         popoutWindow.document.close();
         popoutWindow.focus();
+
+        // 起動直後に親側からデータを確実にプッシュ
+        setTimeout(() => {
+            sendContentToPopout();
+        }, 50);
     }
 
     // --- ユーティリティ関数 ---
