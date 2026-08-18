@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>怪談白物語 GMツール [v1.1.0-dev #2]</title>
+    <title>怪談白物語 GMツール [v1.1.0-dev #3]</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 20px; background: #f4f4f9; margin: 0; color: #333; }
         .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
@@ -72,7 +72,7 @@
     <div class="box" style="border-left: 5px solid #d32f2f;">
         <h2 style="display: flex; justify-content: space-between; align-items: center; margin: 0;">
             <span>怪談白物語 GMツール</span>
-            <span class="build-badge">#2</span>
+            <span class="build-badge">#3</span>
         </h2>
     </div>
 
@@ -237,9 +237,9 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.1.0-dev #2) ---
+    // --- データ構造 (v1.1.0-dev #3) ---
     let appData = { 
-        version: "1.1.0-dev #2",
+        version: "1.1.0-dev #3",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
@@ -274,7 +274,6 @@
         transparent: { bg: 'transparent', text: '#ded3d3', highlight: '#ffeb3b', stroke: '#000000', strokeWidth: 0 }
     };
 
-    // 2段階テキスト分割ロジック
     function segmentParagraph(text, keywords = []) {
         if (!text) return [];
         const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter)
@@ -314,7 +313,6 @@
         return tokens;
     }
 
-    // --- ポップアウト連動管理 ---
     const syncChannel = new BroadcastChannel('kaidan_tool_popout_channel');
 
     syncChannel.onmessage = (event) => {
@@ -381,7 +379,7 @@
         sendContentToPopout();
     }
 
-    // --- 元のコードと100%同じ方式のポップアウト生成関数 ---
+    // --- ポップアウト生成 (元の方式ベース) ---
     function openPopoutWindow() {
         const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=750,height=500,menubar=no,toolbar=no,status=no');
         if (!popoutWindow) return;
@@ -390,7 +388,6 @@
             try { return Array.from(sheet.cssRules).map(rule => rule.cssText).join(''); } catch(e) { return ''; }
         }).join('');
         
-        // ポップアウト側の初期HTML
         const s = appData.stories[appData.currentId];
         let initialPopoutHtml = "「次の段落へ」を押すと物語が始まります。";
         if (s) {
@@ -430,7 +427,7 @@
                         height: 100%; 
                         border: none; 
                         padding: 0; 
-                        padding-bottom: var(--content-bottom-padding, 70px);
+                        padding-bottom: var(--content-bottom-padding, 75px);
                         background: transparent; 
                         overflow-y: auto; 
                         box-shadow: none; 
@@ -451,34 +448,42 @@
                         border: none !important;
                     }
 
+                    /* 右下ログ枠 (厳密に4行分の高さ固定) */
                     .log-overlay-box {
                         position: fixed;
                         bottom: 15px;
                         right: 20px;
-                        width: min(500px, 50vw);
+                        width: min(480px, 45vw);
                         max-width: calc(100vw - 40px);
-                        height: calc(var(--log-font-size, 0.9em) * 1.5 * 4 + 20px);
-                        max-height: 45vh;
-                        background: rgba(10, 4, 4, 0.85);
-                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        height: calc(var(--log-font-size, 0.9em) * 1.4 * 4 + 16px);
+                        background: rgba(10, 4, 4, 0.88);
+                        border: 1px solid rgba(255, 255, 255, 0.25);
                         border-radius: 6px;
                         padding: 8px 12px;
                         font-size: var(--log-font-size, 0.9em);
-                        line-height: 1.5;
+                        line-height: 1.4;
                         overflow-y: auto;
                         box-shadow: 0 4px 12px rgba(0,0,0,0.6);
                         z-index: 9990;
-                        backdrop-filter: blur(2px);
+                        backdrop-filter: blur(3px);
                     }
-                    .log-item { margin-bottom: 3px; word-break: break-all; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); padding-bottom: 2px; }
-                    .log-item:last-child { border-bottom: none; margin-bottom: 0; }
+                    .log-item {
+                        min-height: 1.4em;
+                        line-height: 1.4;
+                        word-break: break-all;
+                        border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+                        padding: 1px 0;
+                    }
+                    .log-item:last-child { border-bottom: none; }
                     .log-dice { color: #81c784; font-weight: bold; }
                     .log-replace { color: var(--theme-highlight, #ffeb3b); font-weight: bold; }
 
+                    /* 画面下部中央 読み上げコントロールバー (元の位置・透過度向上) */
                     .audio-ctrl-container {
                         position: fixed;
                         bottom: 15px;
-                        left: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
                         background: rgba(13, 4, 4, 0.95);
                         border: 1px solid #3a1a1a;
                         padding: 6px 14px;
@@ -489,7 +494,7 @@
                         align-items: center;
                         gap: 10px;
                         box-shadow: 0 0 15px rgba(0,0,0,0.8);
-                        opacity: 0.2;
+                        opacity: 0.7;
                         transition: opacity 0.3s;
                         z-index: 9999;
                     }
@@ -587,7 +592,7 @@
                     function renderLogs(logs, logSettings) {
                         if (!logSettings || !logSettings.showFrame || !logs || logs.length === 0) {
                             logBox.style.display = 'none';
-                            document.body.style.setProperty('--content-bottom-padding', '70px');
+                            document.body.style.setProperty('--content-bottom-padding', '75px');
                             return;
                         }
 
@@ -595,7 +600,8 @@
                         var logSize = logSettings.fontSize || 0.9;
                         document.body.style.setProperty('--log-font-size', logSize + 'em');
                         
-                        var frameHeightEm = logSize * 1.5 * 4 + 2.5;
+                        // ログ枠高さ(4行分)＋下部マージンを本文余白として確保
+                        var frameHeightEm = logSize * 1.4 * 4 + 2.5;
                         document.body.style.setProperty('--content-bottom-padding', frameHeightEm + 'em');
 
                         logBox.innerHTML = '';
@@ -771,7 +777,7 @@
         }
     }
 
-    // --- シナリオ管理 (CRUD) ---
+    // --- シナリオ管理 ---
     function saveStory() {
         const targetId = document.getElementById('editTargetId').value;
         const title = document.getElementById('newTitle').value.trim();
@@ -865,7 +871,7 @@
         }
     }
 
-    // --- 進行・描画ロジック ---
+    // --- 進行・描画 ---
     function nextParagraph() {
         const s = appData.stories[appData.currentId];
         if (!s) { showToast("ストーリーを選択してください", "error"); return; }
@@ -1199,7 +1205,7 @@
     }
 
     function exportData() {
-        appData.version = "1.1.0-dev #2"; 
+        appData.version = "1.1.0-dev #3"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1219,7 +1225,7 @@
                 const imported = JSON.parse(e.target.result);
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.1.0-dev #2",
+                        version: "1.1.0-dev #3",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -1248,7 +1254,7 @@
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
             appData = { 
-                version: "1.1.0-dev #2", 
+                version: "1.1.0-dev #3", 
                 stories: {}, 
                 currentId: "", 
                 replacements: {}, 
