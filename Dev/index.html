@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>怪談白物語 GMツール [v1.1.0-dev #4]</title>
+    <title>怪談白物語 GMツール [v1.1.0-dev #5]</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 20px; background: #f4f4f9; margin: 0; color: #333; }
         .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
@@ -72,7 +72,7 @@
     <div class="box" style="border-left: 5px solid #d32f2f;">
         <h2 style="display: flex; justify-content: space-between; align-items: center; margin: 0;">
             <span>怪談白物語 GMツール</span>
-            <span class="build-badge">#4</span>
+            <span class="build-badge">#5</span>
         </h2>
     </div>
 
@@ -237,9 +237,9 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.1.0-dev #4) ---
+    // --- データ構造 (v1.1.0-dev #5) ---
     let appData = { 
-        version: "1.1.0-dev #4",
+        version: "1.1.0-dev #5",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
@@ -379,7 +379,7 @@
         sendContentToPopout();
     }
 
-    // --- ポップアウト生成 (右下基準固定 & 4行厳密固定) ---
+    // --- ポップアウト生成 (横幅拡大 ＆ 縦幅40%削減) ---
     function openPopoutWindow() {
         const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=750,height=500,menubar=no,toolbar=no,status=no');
         if (!popoutWindow) return;
@@ -427,7 +427,7 @@
                         height: 100%; 
                         border: none; 
                         padding: 0; 
-                        padding-bottom: var(--content-bottom-padding, 80px);
+                        padding-bottom: var(--content-bottom-padding, 70px);
                         background: transparent; 
                         overflow-y: auto; 
                         box-shadow: none; 
@@ -448,28 +448,28 @@
                         border: none !important;
                     }
 
-                    /* ログ枠: 読み上げボタンより上(bottom: 60px) かつ 右下基準で固定 */
+                    /* ログ枠: 横幅拡大(580px/60vw) ＆ 縦幅40%削減(3.6em) */
                     .log-overlay-box {
                         position: fixed;
                         bottom: 60px;
                         right: 15px;
-                        width: min(460px, 48vw);
+                        width: min(580px, 60vw);
                         max-width: calc(100vw - 30px);
-                        height: calc(var(--log-font-size, 0.9em) * 1.5 * 4 + 16px); /* 4行分の高さを厳密固定 */
+                        height: calc(var(--log-font-size, 0.9em) * 3.6 + 12px); /* 40%減の高さ */
                         box-sizing: border-box;
                         background: rgba(10, 4, 4, 0.92);
                         border: 1px solid rgba(255, 255, 255, 0.25);
                         border-radius: 6px;
-                        padding: 8px 10px;
+                        padding: 6px 10px;
                         font-size: var(--log-font-size, 0.9em);
-                        line-height: 1.5;
-                        overflow-y: auto; /* 4行を超えたら枠内スクロール */
+                        line-height: 1.4;
+                        overflow-y: auto;
                         box-shadow: 0 4px 12px rgba(0,0,0,0.7);
                         z-index: 9990;
                         backdrop-filter: blur(4px);
                     }
                     .log-item {
-                        line-height: 1.5;
+                        line-height: 1.4;
                         word-break: break-all;
                         border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
                         padding: 2px 0;
@@ -592,7 +592,7 @@
                     function renderLogs(logs, logSettings) {
                         if (!logSettings || !logSettings.showFrame || !logs || logs.length === 0) {
                             logBox.style.display = 'none';
-                            document.body.style.setProperty('--content-bottom-padding', '80px');
+                            document.body.style.setProperty('--content-bottom-padding', '70px');
                             return;
                         }
 
@@ -600,8 +600,8 @@
                         var logSize = logSettings.fontSize || 0.9;
                         document.body.style.setProperty('--log-font-size', logSize + 'em');
                         
-                        // ログ枠高さ(4行分)＋下部マージン60px分を本文下部余白として動的確保（重なり防止）
-                        var frameHeightEm = logSize * 1.5 * 4 + 4.5;
+                        // ログ枠高さ＋下部マージンを本文下部余白として確保（重なり防止）
+                        var frameHeightEm = logSize * 3.6 + 4.0;
                         document.body.style.setProperty('--content-bottom-padding', frameHeightEm + 'em');
 
                         logBox.innerHTML = '';
@@ -1205,7 +1205,7 @@
     }
 
     function exportData() {
-        appData.version = "1.1.0-dev #4"; 
+        appData.version = "1.1.0-dev #5"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1225,7 +1225,7 @@
                 const imported = JSON.parse(e.target.result);
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.1.0-dev #4",
+                        version: "1.1.0-dev #5",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -1254,7 +1254,7 @@
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
             appData = { 
-                version: "1.1.0-dev #4", 
+                version: "1.1.0-dev #5", 
                 stories: {}, 
                 currentId: "", 
                 replacements: {}, 
