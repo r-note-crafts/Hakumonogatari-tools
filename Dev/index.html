@@ -1095,4 +1095,162 @@
                 count++;
                 htmlStatus += `<span class="done">${escapeHTML(k)}</span> `;
             } else {
-                htmlStatus += `<span class=
+                htmlStatus += `<span class="undone clickable-word" onclick="selectWordForReplace('${escapeHTML(k)}')">${escapeHTML(k)}</span> `;
+            }
+        });
+        document.getElementById('progress').textContent = count;
+        document.getElementById('total').textContent = s.keywords.length;
+        document.getElementById('keywordStatus').innerHTML = "要キーワード: " + htmlStatus;
+    }
+
+    // --- 改変管理 (登録・削除) ---
+    function addReplacement() {
+        const b = document.getElementById('beforeKey').value.trim();
+        const a = document.getElementById('afterKey').value.trim();
+        if (b && a) {
+            appData.replacements[b] = a;
+            document.getElementById('beforeKey').value = "";
+            document.getElementById('afterKey').value = "";
+            addLog('replace', `✏️ 改変: 「${b}」→「${a}」`);
+            renderAll();
+            showToast(`「${b}」を「${a}」に改変しました`);
+        } else {
+            showToast("対象と改変後の両方を入力してください", "error");
+        }
+    }
+
+    function removeReplacement(key) {
+        if (appData.replacements[key]) {
+            const oldValue = appData.replacements[key];
+            delete appData.replacements[key];
+            addLog('replace', `↩️ 取消: 「${key}」の改変解除`);
+            renderAll();
+            showToast(`「${key} → ${oldValue}」の改変を取り消しました`, "info");
+        }
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = "";
+        const keys = Object.keys(appData.replacements);
+        
+        if (keys.length === 0) {
+            list.innerHTML = '<li style="color: #666; font-weight: normal;">改変履歴はありません</li>';
+            return;
+        }
+        
+        keys.forEach(key => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            
+            const textSpan = document.createElement('span');
+            textSpan.textContent = `${key} → ${appData.replacements[key]}`;
+            
+            const delBtn = document.createElement('button');
+            delBtn.textContent = '解除';
+            delBtn.onclick = () => removeReplacement(key);
+            
+            li.appendChild(textSpan);
+            li.appendChild(delBtn);
+            list.appendChild(li);
+        });
+    }
+
+    // --- インポート / エクスポート ---
+    function exportData() {
+        appData.version = "1.1.0-dev"; 
+        const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kaidan_tool_backup_${Date.now()}.json`;
+        a.click();
+        
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast("データをエクスポートしました");
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                
+                if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
+                    appData = {
+                        version: "1.1.0-dev",
+                        stories: imported.stories || {},
+                        currentId: imported.currentId || "",
+                        replacements: imported.replacements || {},
+                        currentIndex: imported.currentIndex || 0,
+                        popoutFontSize: imported.popoutFontSize || 1.6,
+                        themeSettings: imported.themeSettings || PRESETS.horror,
+                        logSettings: imported.logSettings || { showFrame: true, showDice: true, showReplacement: true, fontSize: 0.9 },
+                        logs: Array.isArray(imported.logs) ? imported.logs : [],
+                        audioSettings: imported.audioSettings || { volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" }
+                    };
+                    updateSelector();
+                    renderAll();
+                    showToast("データを正常に復元しました");
+                } else {
+                    showToast("無効なデータ形式です", "error");
+                }
+            } catch (err) {
+                showToast("ファイルの解析に失敗しました", "error");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; 
+    }
+
+    function resetAllData() {
+        if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
+            localStorage.removeItem('kaidan_data');
+            appData = { 
+                version: "1.1.0-dev", 
+                stories: {}, 
+                currentId: "", 
+                replacements: {}, 
+                currentIndex: 0, 
+                popoutFontSize: 1.6, 
+                themeSettings: PRESETS.horror,
+                logSettings: { showFrame: true, showDice: true, showReplacement: true, fontSize: 0.9 },
+                logs: [],
+                audioSettings: { volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" } 
+            };
+            updateSelector();
+            renderAll();
+            showToast("データを初期化しました", "info");
+        }
+    }
+
+    // --- 初期化処理 ---
+    window.onload = () => {
+        const saved = localStorage.getItem('kaidan_data');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (typeof parsed.stories === 'object') {
+                    appData = Object.assign(appData, parsed);
+                }
+            } catch(e) { console.error("データ読み込みエラー", e); }
+        }
+        
+        if (!appData.themeSettings) appData.themeSettings = PRESETS.horror;
+        if (!appData.logSettings) appData.logSettings = { showFrame: true, showDice: true, showReplacement: true, fontSize: 0.9 };
+        if (!Array.isArray(appData.logs)) appData.logs = [];
+        if (!appData.audioSettings) appData.audioSettings = { volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" };
+        
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => { populateVoiceList(); };
+        }
+        
+        initSuggestFeature();
+        updateSelector();
+        renderAll();
+    };
+</script>
+</body>
+</html>
