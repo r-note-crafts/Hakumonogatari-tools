@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>怪談白物語 GMツール [v1.1.0-dev #3]</title>
+    <title>怪談白物語 GMツール [v1.1.0-dev #4]</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 20px; background: #f4f4f9; margin: 0; color: #333; }
         .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
@@ -72,7 +72,7 @@
     <div class="box" style="border-left: 5px solid #d32f2f;">
         <h2 style="display: flex; justify-content: space-between; align-items: center; margin: 0;">
             <span>怪談白物語 GMツール</span>
-            <span class="build-badge">#3</span>
+            <span class="build-badge">#4</span>
         </h2>
     </div>
 
@@ -237,9 +237,9 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.1.0-dev #3) ---
+    // --- データ構造 (v1.1.0-dev #4) ---
     let appData = { 
-        version: "1.1.0-dev #3",
+        version: "1.1.0-dev #4",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
@@ -379,7 +379,7 @@
         sendContentToPopout();
     }
 
-    // --- ポップアウト生成 (元の方式ベース) ---
+    // --- ポップアウト生成 (右下基準固定 & 4行厳密固定) ---
     function openPopoutWindow() {
         const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=750,height=500,menubar=no,toolbar=no,status=no');
         if (!popoutWindow) return;
@@ -427,7 +427,7 @@
                         height: 100%; 
                         border: none; 
                         padding: 0; 
-                        padding-bottom: var(--content-bottom-padding, 75px);
+                        padding-bottom: var(--content-bottom-padding, 80px);
                         background: transparent; 
                         overflow-y: auto; 
                         box-shadow: none; 
@@ -448,37 +448,37 @@
                         border: none !important;
                     }
 
-                    /* 右下ログ枠 (厳密に4行分の高さ固定) */
+                    /* ログ枠: 読み上げボタンより上(bottom: 60px) かつ 右下基準で固定 */
                     .log-overlay-box {
                         position: fixed;
-                        bottom: 15px;
-                        right: 20px;
-                        width: min(480px, 45vw);
-                        max-width: calc(100vw - 40px);
-                        height: calc(var(--log-font-size, 0.9em) * 1.4 * 4 + 16px);
-                        background: rgba(10, 4, 4, 0.88);
+                        bottom: 60px;
+                        right: 15px;
+                        width: min(460px, 48vw);
+                        max-width: calc(100vw - 30px);
+                        height: calc(var(--log-font-size, 0.9em) * 1.5 * 4 + 16px); /* 4行分の高さを厳密固定 */
+                        box-sizing: border-box;
+                        background: rgba(10, 4, 4, 0.92);
                         border: 1px solid rgba(255, 255, 255, 0.25);
                         border-radius: 6px;
-                        padding: 8px 12px;
+                        padding: 8px 10px;
                         font-size: var(--log-font-size, 0.9em);
-                        line-height: 1.4;
-                        overflow-y: auto;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+                        line-height: 1.5;
+                        overflow-y: auto; /* 4行を超えたら枠内スクロール */
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.7);
                         z-index: 9990;
-                        backdrop-filter: blur(3px);
+                        backdrop-filter: blur(4px);
                     }
                     .log-item {
-                        min-height: 1.4em;
-                        line-height: 1.4;
+                        line-height: 1.5;
                         word-break: break-all;
                         border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-                        padding: 1px 0;
+                        padding: 2px 0;
                     }
                     .log-item:last-child { border-bottom: none; }
                     .log-dice { color: #81c784; font-weight: bold; }
                     .log-replace { color: var(--theme-highlight, #ffeb3b); font-weight: bold; }
 
-                    /* 画面下部中央 読み上げコントロールバー (元の位置・透過度向上) */
+                    /* 画面下部中央 読み上げコントロールバー */
                     .audio-ctrl-container {
                         position: fixed;
                         bottom: 15px;
@@ -592,7 +592,7 @@
                     function renderLogs(logs, logSettings) {
                         if (!logSettings || !logSettings.showFrame || !logs || logs.length === 0) {
                             logBox.style.display = 'none';
-                            document.body.style.setProperty('--content-bottom-padding', '75px');
+                            document.body.style.setProperty('--content-bottom-padding', '80px');
                             return;
                         }
 
@@ -600,8 +600,8 @@
                         var logSize = logSettings.fontSize || 0.9;
                         document.body.style.setProperty('--log-font-size', logSize + 'em');
                         
-                        // ログ枠高さ(4行分)＋下部マージンを本文余白として確保
-                        var frameHeightEm = logSize * 1.4 * 4 + 2.5;
+                        // ログ枠高さ(4行分)＋下部マージン60px分を本文下部余白として動的確保（重なり防止）
+                        var frameHeightEm = logSize * 1.5 * 4 + 4.5;
                         document.body.style.setProperty('--content-bottom-padding', frameHeightEm + 'em');
 
                         logBox.innerHTML = '';
@@ -1205,7 +1205,7 @@
     }
 
     function exportData() {
-        appData.version = "1.1.0-dev #3"; 
+        appData.version = "1.1.0-dev #4"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1225,7 +1225,7 @@
                 const imported = JSON.parse(e.target.result);
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.1.0-dev #3",
+                        version: "1.1.0-dev #4",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -1254,7 +1254,7 @@
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
             appData = { 
-                version: "1.1.0-dev #3", 
+                version: "1.1.0-dev #4", 
                 stories: {}, 
                 currentId: "", 
                 replacements: {}, 
