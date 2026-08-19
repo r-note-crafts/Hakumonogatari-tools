@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>怪談白物語 GMツール [v1.1.0-dev #6]</title>
+    <title>怪談白物語 GMツール [v1.1.0-dev #8]</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 20px; background: #f4f4f9; margin: 0; color: #333; }
         .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; gap: 20px; }
@@ -72,7 +72,7 @@
     <div class="box" style="border-left: 5px solid #d32f2f;">
         <h2 style="display: flex; justify-content: space-between; align-items: center; margin: 0;">
             <span>怪談白物語 GMツール</span>
-            <span class="build-badge">#6</span>
+            <span class="build-badge">#8</span>
         </h2>
     </div>
 
@@ -128,7 +128,7 @@
             <h4 style="margin-bottom: 10px; color: #084298;">キーワードの改変</h4>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <div class="suggest-wrapper">
-                    <input type="text" id="beforeKey" placeholder="対象単語 (本文クリックまたは2文字入力)" style="margin: 0;" autocomplete="off">
+                    <input type="text" id="beforeKey" placeholder="対象単語・文字 (本文クリックまたは入力)" style="margin: 0;" autocomplete="off">
                     <ul id="suggestBox" class="suggest-box"></ul>
                 </div>
                 <span style="font-weight: bold;">→</span>
@@ -237,9 +237,9 @@
 </div>
 
 <script>
-    // --- データ構造 (v1.1.0-dev #6) ---
+    // --- データ構造 (v1.1.0-dev #8) ---
     let appData = { 
-        version: "1.1.0-dev #6",
+        version: "1.1.0-dev #8",
         stories: {}, 
         currentId: "", 
         replacements: {}, 
@@ -274,6 +274,7 @@
         transparent: { bg: 'transparent', text: '#ded3d3', highlight: '#ffeb3b', stroke: '#000000', strokeWidth: 0 }
     };
 
+    // 単語分割（Intl.Segmenter + キーワード優先）
     function segmentParagraph(text, keywords = []) {
         if (!text) return [];
         const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter)
@@ -379,7 +380,7 @@
         sendContentToPopout();
     }
 
-    // --- ポップアウト生成 (ズレ解消・縦横文字サイズ連動・半透明白背景) ---
+    // --- ポップアウト生成 ---
     function openPopoutWindow() {
         const popoutWindow = window.open('', 'KaidanToolPopoutWindow', 'width=750,height=500,menubar=no,toolbar=no,status=no');
         if (!popoutWindow) return;
@@ -440,24 +441,27 @@
                     }
                     p { margin-top: 0; margin-bottom: 1.5em; }
                     
+                    /* 付箋ハイライトバッジ（視認性の高い黄色背景×黒文字×黄色枠線） */
                     .replaced { 
                         font-family: 'Helvetica Neue', Arial, sans-serif !important; 
-                        color: var(--theme-highlight, #ffeb3b) !important;
+                        background: #ffeb3b !important; 
+                        color: #000000 !important;
+                        border: 1px solid #d4d400 !important;
                         font-weight: bold !important;
-                        background: transparent !important;
-                        border: none !important;
+                        padding: 2px 6px !important;
+                        border-radius: 4px !important;
+                        text-shadow: none !important;
                     }
 
-                    /* ログ枠: 半透明白背景(20%) ＆ 縦横ともに文字サイズ連動(1em基準で計算ズレ完全解消) */
                     .log-overlay-box {
                         position: fixed;
                         bottom: 60px;
                         right: 15px;
                         font-size: var(--log-font-size, 0.9rem);
-                        width: min(20em, calc(100vw - 30px)); /* 横幅も文字サイズに連動 */
-                        height: calc(1.25em * 4 + 8px);       /* 厳密に1.25em×4行分の高さ */
+                        width: min(20em, calc(100vw - 30px));
+                        height: calc(1.25em * 4 + 8px);
                         box-sizing: border-box;
-                        background: rgba(255, 255, 255, 0.2);  /* 本文背景より少し白っぽく透明度20% */
+                        background: rgba(255, 255, 255, 0.2);
                         border: 1px solid rgba(255, 255, 255, 0.35);
                         border-radius: 6px;
                         padding: 4px 8px;
@@ -475,9 +479,9 @@
                     }
                     .log-item:last-child { border-bottom: none; }
                     .log-dice { color: #81c784; font-weight: bold; }
-                    .log-replace { color: var(--theme-highlight, #ffeb3b); font-weight: bold; }
+                    .log-replace { color: #ffeb3b; font-weight: bold; }
 
-                    /* 画面下部中央 読み上げコントロールバー */
+                    /* 画面下部中央 読み上げコントロールバー (初期透明度 0.2 復元) */
                     .audio-ctrl-container {
                         position: fixed;
                         bottom: 15px;
@@ -493,53 +497,17 @@
                         align-items: center;
                         gap: 10px;
                         box-shadow: 0 0 15px rgba(0,0,0,0.8);
-                        opacity: 0.7;
+                        opacity: 0.2;
                         transition: opacity 0.3s;
                         z-index: 9999;
                     }
-                    .audio-ctrl-container:hover {
-                        opacity: 1.0;
-                    }
-                    .audio-main-btn {
-                        background: transparent;
-                        border: none;
-                        color: #bfaaaa;
-                        cursor: pointer;
-                        font-weight: bold;
-                        font-family: inherit;
-                        padding: 0;
-                        font-size: 1em;
-                        outline: none;
-                    }
-                    .audio-main-btn:hover {
-                        color: #ded3d3;
-                    }
-                    .audio-sub-menu {
-                        display: none;
-                        gap: 8px;
-                        border-left: 1px solid #4a2a2a;
-                        padding-left: 10px;
-                        align-items: center;
-                    }
-                    .audio-sub-menu.open {
-                        display: flex;
-                    }
-                    .audio-btn {
-                        background: #1a0a0a;
-                        border: 1px solid #4a2a2a;
-                        color: #ded3d3;
-                        padding: 2px 8px;
-                        border-radius: 3px;
-                        cursor: pointer;
-                        font-family: inherit;
-                        font-size: 0.9em;
-                        outline: none;
-                        transition: background 0.2s;
-                    }
-                    .audio-btn:hover {
-                        background: #3a1a1a;
-                        color: #ffffff;
-                    }
+                    .audio-ctrl-container:hover { opacity: 1.0; }
+                    .audio-main-btn { background: transparent; border: none; color: #bfaaaa; cursor: pointer; font-weight: bold; font-family: inherit; padding: 0; font-size: 1em; outline: none; }
+                    .audio-main-btn:hover { color: #ded3d3; }
+                    .audio-sub-menu { display: none; gap: 8px; border-left: 1px solid #4a2a2a; padding-left: 10px; align-items: center; }
+                    .audio-sub-menu.open { display: flex; }
+                    .audio-btn { background: #1a0a0a; border: 1px solid #4a2a2a; color: #ded3d3; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-family: inherit; font-size: 0.9em; outline: none; transition: background 0.2s; }
+                    .audio-btn:hover { background: #3a1a1a; color: #ffffff; }
                 </style>
             </head>
             <body>
@@ -553,7 +521,6 @@
                         <button class="audio-btn" onclick="playAll()">再生（全体）</button>
                         <button class="audio-btn" onclick="pauseResume()">一時停止/再開</button>
                         <button class="audio-btn" onclick="stopAudio()">停止</button>
-                        
                         <div style="display: flex; align-items: center; gap: 4px; border-left: 1px solid #4a2a2a; padding-left: 8px; margin-left: 4px;">
                             <span style="color: #bfaaaa; font-size: 0.9em;">音量:</span>
                             <input type="range" id="popoutVolSlider" min="0" max="1" step="0.1" value="1.0" oninput="changeVolume(this.value)" style="width: 70px; cursor: pointer; vertical-align: middle; margin: 0;">
@@ -599,7 +566,6 @@
                         var logSize = logSettings.fontSize || 0.9;
                         document.body.style.setProperty('--log-font-size', logSize + 'rem');
                         
-                        // ログ枠高さ(1.25em*4+8px)＋下部60px分を本文下部余白として確保（重なり防止）
                         var frameHeightEm = logSize * 1.25 * 4 + 4.0;
                         document.body.style.setProperty('--content-bottom-padding', frameHeightEm + 'rem');
 
@@ -655,13 +621,9 @@
 
                     function speakText(text, onEndCallback) {
                         window.speechSynthesis.cancel();
-                        if (!text) {
-                            if (onEndCallback) onEndCallback();
-                            return;
-                        }
+                        if (!text) { if (onEndCallback) onEndCallback(); return; }
                         var uttr = new SpeechSynthesisUtterance(text);
                         var voices = window.speechSynthesis.getVoices();
-                        
                         var selectedVoice = null;
                         if (audioSettings.voiceName) {
                             selectedVoice = voices.find(function(v) { return v.name === audioSettings.voiceName; });
@@ -677,7 +639,6 @@
                         
                         uttr.onend = function() { if (onEndCallback) onEndCallback(); };
                         uttr.onerror = function() { isPlayingAll = false; };
-                        
                         window.speechSynthesis.speak(uttr);
                     }
 
@@ -698,11 +659,8 @@
                     function playNextInAll() {
                         if (!isPlayingAll) return;
                         if (allPlayIndex < currentParagraphs.length) {
-                            var text = currentParagraphs[allPlayIndex];
-                            allPlayIndex++;
-                            speakText(text, function() {
-                                setTimeout(function() { playNextInAll(); }, 400); 
-                            });
+                            var text = currentParagraphs[allPlayIndex++];
+                            speakText(text, function() { setTimeout(playNextInAll, 400); });
                         } else {
                             isPlayingAll = false;
                         }
@@ -710,11 +668,7 @@
 
                     function pauseResume() {
                         if (window.speechSynthesis.speaking) {
-                            if (window.speechSynthesis.paused) {
-                                window.speechSynthesis.resume();
-                            } else {
-                                window.speechSynthesis.pause();
-                            }
+                            window.speechSynthesis.paused ? window.speechSynthesis.resume() : window.speechSynthesis.pause();
                         }
                     }
 
@@ -892,24 +846,47 @@
         }
     }
 
+    // 1文字〜部分文字列の任意置換 ＋ GM単語クリック両立処理
     function applyReplacementsSafely(text, isGMScreen = true) {
-        const s = appData.stories[appData.currentId];
-        const keywords = s ? s.keywords : [];
-        const tokens = segmentParagraph(text, keywords);
-
-        let html = "";
-        tokens.forEach(token => {
-            const trimmed = token.trim();
-            if (appData.replacements[trimmed]) {
-                const replacedWord = escapeHTML(appData.replacements[trimmed]);
-                html += `<span class="replaced">${replacedWord}</span>`;
-            } else if (isGMScreen && trimmed.length > 0 && !/[\s\n\r、。！？「」『』（）]/.test(trimmed)) {
-                html += `<span class="clickable-word" onclick="selectWordForReplace('${escapeHTML(trimmed)}')">${escapeHTML(token)}</span>`;
-            } else {
-                html += escapeHTML(token);
-            }
+        let htmlText = escapeHTML(text);
+        const keys = Object.keys(appData.replacements).sort((a, b) => b.length - a.length);
+        let placeholders = [];
+        
+        // 1. 部分一致改変を最優先でプレースホルダー化
+        keys.forEach((key, index) => {
+            const escapedKey = escapeHTML(key);
+            const safeRegex = new RegExp(escapedKey.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+            htmlText = htmlText.replace(safeRegex, `__REPLACE_HOLDER_${index}__`);
+            placeholders[index] = `<span class="replaced">${escapeHTML(appData.replacements[key])}</span>`;
         });
-        return html.replace(/\n/g, '<br>');
+
+        // 2. GM画面用: プレースホルダー以外の部分を単語分割してクリック可能スパンを付与
+        if (isGMScreen) {
+            const s = appData.stories[appData.currentId];
+            const keywords = s ? s.keywords : [];
+            const parts = htmlText.split(/(__REPLACE_HOLDER_\d+__)/);
+            
+            htmlText = parts.map(part => {
+                if (/^__REPLACE_HOLDER_\d+__$/.test(part)) {
+                    return part;
+                }
+                const tokens = segmentParagraph(part, keywords);
+                return tokens.map(token => {
+                    const trimmed = token.trim();
+                    if (trimmed.length > 0 && !/[\s\n\r、。！？「」『』（）]/.test(trimmed)) {
+                        return `<span class="clickable-word" onclick="selectWordForReplace('${escapeHTML(trimmed)}')">${token}</span>`;
+                    }
+                    return token;
+                }).join('');
+            }).join('');
+        }
+
+        // 3. プレースホルダーを改変ハイライトに復元
+        placeholders.forEach((ph, index) => {
+            htmlText = htmlText.replace(new RegExp(`__REPLACE_HOLDER_${index}__`, 'g'), ph);
+        });
+
+        return htmlText.replace(/\n/g, '<br>');
     }
 
     function renderSharedView() {
@@ -1203,8 +1180,9 @@
         });
     }
 
+    // --- インポート / エクスポート ---
     function exportData() {
-        appData.version = "1.1.0-dev #6"; 
+        appData.version = "1.1.0-dev #8"; 
         const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1215,6 +1193,7 @@
         showToast("データをエクスポートしました");
     }
 
+    // 旧形式データ互換復元処理を完全復元
     function importData(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1222,9 +1201,10 @@
         reader.onload = function(e) {
             try {
                 const imported = JSON.parse(e.target.result);
+                
                 if (imported && imported.stories && typeof imported.stories === 'object' && !Array.isArray(imported)) {
                     appData = {
-                        version: "1.1.0-dev #6",
+                        version: "1.1.0-dev #8",
                         stories: imported.stories || {},
                         currentId: imported.currentId || "",
                         replacements: imported.replacements || {},
@@ -1238,6 +1218,36 @@
                     updateSelector();
                     renderAll();
                     showToast("データを正常に復元しました");
+                } 
+                else if (Array.isArray(imported)) {
+                    // 旧形式（配列形式）の自動変換復元
+                    const convertedStories = {};
+                    imported.forEach((s, idx) => {
+                        if (s.title && s.text) {
+                            const id = s.id || ("s_" + Date.now() + "_" + idx);
+                            convertedStories[id] = {
+                                title: s.title,
+                                text: s.text,
+                                keywords: Array.isArray(s.keywords) ? s.keywords : []
+                            };
+                        }
+                    });
+                    
+                    appData = {
+                        version: "1.1.0-dev #8",
+                        stories: convertedStories,
+                        currentId: "",
+                        replacements: {},
+                        currentIndex: 0,
+                        popoutFontSize: 1.6,
+                        themeSettings: PRESETS.horror,
+                        logSettings: { showFrame: true, showDice: true, showReplacement: true, fontSize: 0.9 },
+                        logs: [],
+                        audioSettings: { volume: 1.0, rate: 1.3, pitch: 1.4, voiceName: "" }
+                    };
+                    updateSelector();
+                    renderAll();
+                    showToast("旧形式データを自動変換して復元しました");
                 } else {
                     showToast("無効なデータ形式です", "error");
                 }
@@ -1253,7 +1263,7 @@
         if (confirm("すべてのシナリオおよび進行データが削除されます。よろしいですか？\n（事前にデータをエクスポートしておくことを強くお勧めします）")) {
             localStorage.removeItem('kaidan_data');
             appData = { 
-                version: "1.1.0-dev #6", 
+                version: "1.1.0-dev #8", 
                 stories: {}, 
                 currentId: "", 
                 replacements: {}, 
